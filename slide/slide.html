@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>팀플 서약 — 발표자료</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  @page { size: 1920px 1080px; margin: 0; }
+  * { box-sizing: border-box; }
+  html,body { margin:0; background:#111; font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; }
+  .slide { width:1920px; height:1080px; margin:0 auto; background:#fff; color:#111827; padding:64px 80px; display:grid;
+           grid-template-rows: auto 1fr auto; gap:28px; position:relative; overflow:hidden; }
+  .top { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:4px solid #4f46e5; padding-bottom:18px; }
+  h1 { margin:0; font-size:62px; letter-spacing:-1px; }
+  h1 small { display:block; font-size:24px; font-weight:500; color:#4b5563; margin-top:8px; letter-spacing:0; }
+  .meta { text-align:right; font-size:22px; color:#374151; line-height:1.5; }
+  .meta b { color:#4f46e5; }
+  .body { display:grid; grid-template-columns: 1.05fr 1.25fr 1fr; gap:28px; min-height:0; }
+  .card { border:2px solid #e5e7eb; border-radius:22px; padding:26px 28px; display:flex; flex-direction:column; gap:14px; }
+  .card h2 { margin:0; font-size:30px; display:flex; align-items:center; gap:10px; }
+  .card h2 .n { background:#4f46e5; color:#fff; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:22px; }
+  .card p, .card li { font-size:22px; line-height:1.45; margin:0; }
+  .card ul { margin:0; padding-left:26px; display:flex; flex-direction:column; gap:8px; }
+  .pain { background:#fef2f2; border-color:#fecaca; }
+  .flow { display:flex; flex-direction:column; gap:10px; }
+  .step { display:flex; gap:14px; align-items:flex-start; background:#f5f3ff; border-radius:14px; padding:12px 16px; }
+  .step .ic { font-size:30px; line-height:1; }
+  .step b { font-size:22px; display:block; }
+  .step span { font-size:19px; color:#4b5563; }
+  .popup { border:3px solid #111; border-radius:16px; padding:16px 18px; text-align:center; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.12); }
+  .popup .q { font-size:28px; font-weight:800; margin:4px 0 10px; }
+  .popup .btns { display:flex; gap:10px; justify-content:center; }
+  .popup .btns span { border:2px solid #111; border-radius:10px; padding:6px 22px; font-size:20px; font-weight:700; }
+  .popup .btns .no { background:#ecfdf5; } .popup .btns .yes { background:#fef2f2; }
+  .arrow { text-align:center; font-size:22px; color:#6b7280; }
+  .f { filter:grayscale(100%); opacity:.55; text-decoration:line-through; }
+  .oath { font-size:18px; font-style:italic; color:#111; }
+  .ai { background:#f0fdf4; border-color:#bbf7d0; }
+  .pipe { display:flex; flex-direction:column; gap:8px; }
+  .pipe div { background:#fff; border:2px solid #86efac; border-radius:12px; padding:10px 14px; font-size:21px; }
+  .pipe div b { color:#166534; }
+  .gpu { background:#eff6ff; border-color:#bfdbfe; }
+  .bottom { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:20px; }
+  .kpi { background:#111827; color:#fff; border-radius:16px; padding:16px 20px; }
+  .kpi b { display:block; font-size:18px; color:#a5b4fc; margin-bottom:4px; }
+  .kpi span { font-size:22px; line-height:1.35; }
+  .url { position:absolute; right:80px; bottom:26px; font-size:18px; color:#6b7280; }
+  @media print { html,body { background:#fff; } }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top">
+    <h1>🤝 팀플 서약 <small>무임승차 없는 팀 프로젝트 — 매주 작업물로 기여를 증명하고, AI가 공정하게 평가한다</small></h1>
+    <div class="meta"><b>트랙 1 · NEXT AI</b><br>배포: <b>YOUR-APP.streamlit.app</b><br>GitHub: github.com/YOUR-ID/teamfair-ai</div>
+  </div>
+
+  <div class="body">
+    <!-- 문제 -->
+    <div class="card pain">
+      <h2><span class="n">1</span>현장의 문제</h2>
+      <ul>
+        <li><b>"다음 주에 올릴게요"</b>가 반복되다 마감 직전 몰아치기</li>
+        <li>기여도가 달라도 <b>같은 점수</b> → 열심히 한 사람의 동기 붕괴</li>
+        <li>교수님께 말하려 해도 <b>증거가 없음</b></li>
+        <li>역할을 나눠도 "검토·취합"처럼 <b>검증 불가능한 역할</b>이 생김</li>
+      </ul>
+      <p style="margin-top:auto;color:#991b1b;font-weight:700">기존 도구(노션·카톡)는 기록만 할 뿐, 약속을 강제하지도 공정하게 평가하지도 못한다.</p>
+    </div>
+
+    <!-- 해결 -->
+    <div class="card">
+      <h2><span class="n">2</span>해결 — 서약 · 주간 증명 · 팝업</h2>
+      <div class="flow">
+        <div class="step"><div class="ic">🏫</div><div><b>팀 등록</b><span>수업 · 팀 · 구성원 · 과제 · 기간 → AI가 주차별 산출물 목표 설계</span></div></div>
+        <div class="step"><div class="ic">📤</div><div><b>매주 작업물 업로드</b><span>검토 AI → 판정 AI. "열심히 했어요"는 미인정</span></div></div>
+      </div>
+      <div class="popup">
+        <div style="font-size:18px;color:#6b7280">⚠️ 마감까지 올리지 않으면</div>
+        <div class="q">팀의 평화를 부수겠습니까?</div>
+        <div class="btns"><span class="yes">예</span><span class="no">아니요 → 하루 연장</span></div>
+        <div class="arrow">예 ↓ "혼자 F를 받는 것에 동의한다는 건가요?" (예 / 뒤로가기)</div>
+        <div><span class="f" style="font-size:26px;font-weight:800">박지훈</span><div class="oath">“F를 받겠습니다. 교수님께 따로 말씀드리는 것에 동의합니다.”</div></div>
+      </div>
+    </div>
+
+    <!-- AI + GPU -->
+    <div style="display:flex;flex-direction:column;gap:20px;min-height:0">
+      <div class="card ai" style="flex:1.4">
+        <h2><span class="n">3</span>Multi-AI 파이프라인</h2>
+        <div class="pipe">
+          <div><b>① 역할 설계 AI</b> — 과제 → 검증 가능한 주차 목표</div>
+          <div><b>② 검토 AI</b> — 관련성·완성도·노력·명확성 채점</div>
+          <div><b>③ 판정 AI</b> — 인정 / 조건부 / 미인정 (형식적 제출 차단)</div>
+          <div><b>④ 리포트 AI</b> — 기여도 % · 교수 제출용 보고서 · 동료평가</div>
+        </div>
+        <p style="font-size:19px;color:#166534">모든 호출 JSON 스키마 강제 · 프롬프트 기록 자동 저장 · 키 없어도 규칙 기반으로 끝까지 작동</p>
+      </div>
+      <div class="card gpu" style="flex:1">
+        <h2><span class="n">4</span>교내 GPU (틸론 × KTNF)</h2>
+        <p>학생 과제물·이름을 외부 API에 보내지 않도록 <b>틸론 GPU VM에서 EXAONE-3.5를 vLLM으로 서빙</b>. OpenAI 호환이라 Base URL만 바꾸면 4개 AI가 모두 교내에서 실행.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="kpi"><b>구현</b><span>웹 배포 · SQLite · 데모 팀 1클릭 · 자가 테스트 통과</span></div>
+    <div class="kpi"><b>AI 활용</b><span>4단 파이프라인 · 형식적 제출 자동 차단</span></div>
+    <div class="kpi"><b>데모</b><span>「데모 팀 생성」 → 박지훈으로 입장 → 팝업 시연</span></div>
+    <div class="kpi"><b>확장성</b><span>LMS 연동 · 깃허브/노션 자동 증빙 · 기업 OJT·TF</span></div>
+  </div>
+  <div class="url">브라우저에서 Ctrl+P → PDF 저장 (가로, 여백 없음)</div>
+</div>
+</body>
+</html>

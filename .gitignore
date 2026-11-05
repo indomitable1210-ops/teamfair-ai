@@ -1,0 +1,7 @@
+teamfair.db
+uploads/*
+!uploads/.gitkeep
+__pycache__/
+.streamlit/secrets.toml
+*.pyc
+.venv/
