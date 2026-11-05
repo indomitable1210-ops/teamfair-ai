@@ -26,18 +26,21 @@ SESSION_DAYS = 30
 MAX_FILE_BYTES = 8 * 1024 * 1024
 
 
+_BOM = "\ufeff"  # 윈도우 파이프로 넣은 값 앞에 붙는 보이지 않는 문자
+
+
 def _database_url() -> str:
     """환경변수 → st.secrets 순으로 DATABASE_URL 을 찾는다. (st 가 없으면 환경변수만)"""
     if os.environ.get("TEAMFAIR_FORCE_SQLITE"):  # 테스트용: secrets/환경변수와 무관하게 로컬 SQLite 강제
         return ""
-    url = os.environ.get("DATABASE_URL", "").strip()  # Streamlit 은 secrets.toml 값을 환경변수로도 내보낸다
+    url = os.environ.get("DATABASE_URL", "").strip().lstrip(_BOM)  # Streamlit 은 secrets.toml 값을 환경변수로도 내보낸다
     if not url:
         try:
             import streamlit as st  # noqa: WPS433
             url = str(st.secrets.get("DATABASE_URL", "") or "")  # type: ignore[attr-defined]
         except Exception:
             url = ""
-    return url.strip()
+    return url.strip().lstrip(_BOM)
 
 
 # ───────────── 커넥션 래퍼 ─────────────

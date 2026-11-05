@@ -121,7 +121,9 @@ async def db_guard(request: Request, call_next):
     try:
         ensure_db()
     except Exception as e:  # noqa: BLE001
-        return HTMLResponse(f"<h1>데이터베이스에 연결할 수 없습니다</h1><p>{type(e).__name__}: {e}</p>", status_code=500)
+        # 예외 메시지에 접속 주소(비밀번호)가 들어갈 수 있어 화면에는 절대 출력하지 않고 서버 로그에만 남긴다.
+        print(f"[db_guard] DB init failed: {type(e).__name__}", file=sys.stderr)
+        return HTMLResponse("<h1>데이터베이스에 연결할 수 없습니다</h1><p>잠시 후 다시 시도해 주세요.</p>", status_code=503)
     return await call_next(request)
 
 
