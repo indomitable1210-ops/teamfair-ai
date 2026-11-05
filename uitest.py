@@ -1,5 +1,5 @@
 import os, tempfile
-os.environ.setdefault("DATABASE_URL", "")  # 기본은 로컬 SQLite. Postgres 로 돌리려면 DATABASE_URL 지정
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "")  # 테스트는 항상 임시 SQLite. Postgres 로 돌리려면 TEST_DATABASE_URL 지정
 os.environ["TEAMFAIR_DB"] = os.path.join(tempfile.mkdtemp(), "ui.db")
 from streamlit.testing.v1 import AppTest
 import db
