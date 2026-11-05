@@ -4,7 +4,7 @@ os.environ["TEAMFAIR_FORCE_SQLITE"] = "1"
 os.environ["TEAMFAIR_DB"] = os.path.join(tempfile.mkdtemp(), "web.db")
 for k in ("GROQ_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY", "TILON_API_KEY"):
     os.environ.pop(k, None)
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "api"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "web"))
 from fastapi.testclient import TestClient
 import index, db
 
