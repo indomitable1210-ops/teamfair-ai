@@ -113,5 +113,6 @@ weekly_goals 길이는 반드시 프로젝트 주차 수와 같아야 합니다.
 | 7 | 헤드리스 자가 테스트(selftest.py) + Streamlit AppTest(uitest.py) 작성·통과 | 검증 |
 | 8 | 틸론 GPU 활용 문서, README, 발표자료 1장 작성 | 제출물 |
 | 9 | "내 사이트 AI가 일하는 부분이 너무 없지 않아 뭘 더 추가하면 좋을까" → 후보 제시 후 "추천 2랑 3 추가해줘" | 재탕·복붙 감지(유사도+판정 AI), AI 주간 브리핑 추가 |
+| 10 | "로그인도 추가해야 하거든 이메일 연동 로그인하고 싶어" → "이게 저장이 되야 하거든" → "구글 소셜로그인 + email 자체로그인 구현해야함" | 이메일 가입/로그인(PBKDF2 해시, DB 세션 토큰), Google OIDC 로그인(`st.login`), 계정↔팀원 이름 1:1 연결(사칭 차단), Postgres(`DATABASE_URL`) 영구 저장소 + SQLite 겸용, 첨부파일 DB 저장 |
 
 > 개발 도구: Claude Code (Claude Fable 5.1) · 개발 환경: Windows 11, Python 3.13, Streamlit 1.66

@@ -11,6 +11,8 @@
 | 🧠 AI | 역할 설계 AI → 검토 AI → 판정 AI(+재탕·복붙 감지) → 주간 브리핑 AI → 리포트 AI (5단 Multi-AI 파이프라인, OpenAI 호환 인터페이스) |
 | 🖥️ 교내 GPU | 틸론(Tilon x KTNF) GPU VM 에서 vLLM 로 EXAONE 서빙 → `Base URL` 만 바꿔 연결 ([docs/tilon_gpu.md](docs/tilon_gpu.md)) |
 | 🧾 프롬프트 기록 | [PROMPT_LOG.md](PROMPT_LOG.md) + 앱 내 「프롬프트 기록」 탭(실행마다 자동 저장·JSON 다운로드) |
+| 🔐 로그인 | **Google 소셜 로그인** + **이메일 자체 로그인**. 로그인 계정 = 팀원 1명으로 고정되어 남의 이름으로 제출 불가 |
+| 💾 저장소 | `DATABASE_URL` 로 Postgres(Neon/Supabase 무료) 연결 시 **영구 저장** (계정·팀·제출·첨부파일 모두 DB). 없으면 로컬 SQLite |
 
 ---
 
@@ -29,7 +31,8 @@
 
 | 단계 | 사용자 행동 | AI/시스템이 하는 일 |
 |---|---|---|
-| ① 팀 등록 | 수업 이름, 팀 이름, 구성원, 과제, 기간 입력 | **역할 설계 AI**가 "매주 검증 가능한 산출물" 단위로 역할과 주차별 목표를 자동 설계 |
+| ⓪ 로그인 | Google 또는 이메일로 가입·로그인 | 계정(이메일)이 팀원 명단의 **이름 1개와 영구 연결**. 이미 연결된 이름은 다른 계정이 고를 수 없음 → 대리 제출·사칭 차단 |
+| ① 팀 등록 | 수업 이름, 팀 이름, 구성원(+이메일), 과제, 기간 입력 | **역할 설계 AI**가 "매주 검증 가능한 산출물" 단위로 역할과 주차별 목표를 자동 설계 |
 | ② 주간 제출 | 매주 자신의 작업물(텍스트+링크+파일) 업로드 | **유사도 검사**(지난주 재탕·다른 팀원 복붙·링크만 변경 감지) → **검토 AI**가 4개 축(관련성·완성도·노력·명확성)으로 채점 → **판정 AI**가 *인정 / 조건부 인정 / 미인정* 판정. "열심히 했어요" 같은 **형식적 제출과 복붙은 미인정** |
 | ②-1 주간 브리핑 | 팀 보드에서 버튼 한 번 | **브리핑 AI**가 이번 주 해낸 일, 위험 신호, **누가 누구를 기다리는지**, 다음 주 집중할 것, 단톡방 공지문을 생성 |
 | ③ 미제출 팝업 | 마감이 지나도 안 올리면 팝업: **"팀의 평화를 부수겠습니까?"** | **아니요** → 기회로 **하루 연장**(주차당 1회) / **예** → "혼자 F를 받는 것에 동의한다는 건가요?" (예 / 뒤로가기) |
@@ -68,22 +71,41 @@ streamlit run app.py
 ### Streamlit Community Cloud (무료, 약 1분)
 1. 이 저장소를 GitHub 공개 저장소로 push
 2. https://share.streamlit.io → New app → 저장소/`app.py` 선택 → Deploy
-3. (선택) **Settings → Secrets** 에 키 입력 → 바로 AI 모드
+3. **Settings → Secrets** 에 아래 내용 입력 (전체 예시: [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example))
    ```toml
+   # 영구 저장소 — 없으면 서버 재시작 시 데이터가 사라짐 (Neon: https://neon.tech 무료)
+   DATABASE_URL = "postgresql://...?sslmode=require"
+
+   # AI 키 (선택) — 하나만 있어도 AI 모드
    GROQ_API_KEY = "gsk_..."          # 또는 GEMINI_API_KEY / OPENAI_API_KEY
    # 틸론 GPU 서버를 쓸 때
    TILON_API_KEY = "EMPTY"
    TILON_BASE_URL = "http://<틸론VM-공인IP>:8000/v1"
+
+   # 구글 소셜 로그인 (선택) — 없으면 이메일 로그인만 표시
+   [auth]
+   redirect_uri = "https://<앱이름>.streamlit.app/oauth2callback"
+   cookie_secret = "<32자 이상 무작위 문자열>"
+   [auth.google]
+   client_id = "....apps.googleusercontent.com"
+   client_secret = "GOCSPX-..."
+   server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
    ```
 
+### 로그인 / 저장소 설계
+- **이메일 로그인**: 비밀번호는 PBKDF2-SHA256(20만 회) 해시로 저장. 로그인 세션은 DB `sessions` 테이블 + URL 토큰(30일)으로 유지되어 새로고침·서버 재시작 후에도 로그인 상태가 남음
+- **Google 로그인**: Streamlit 내장 OIDC(`st.login`) 사용. 구글 이메일이 같은 `users` 테이블에 자동 등록되어 이메일 계정과 동일하게 동작
+- **계정 ↔ 팀원 연결**: 팀장이 구성원에 이메일을 적어두면 자동 매칭, 아니면 첫 입장 때 명단에서 이름을 1회 선택. 연결된 이름은 다른 계정이 선택 불가
+- **첨부 파일**도 DB(`attachments`, 8MB 제한)에 저장되어 휘발성 디스크에서도 유지
+
 ### 환경 변수 (로컬)
-`GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, `TILON_API_KEY`, `TILON_BASE_URL`, `TEAMFAIR_DB`(DB 경로)
+`DATABASE_URL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, `TILON_API_KEY`, `TILON_BASE_URL`, `TEAMFAIR_DB`(SQLite 경로)
 
 ## 6. 테스트
 
 ```bash
-python selftest.py   # DB·주차 계산·팝업 트리거·검토/판정·리포트·백업 왕복
-python uitest.py     # Streamlit AppTest 로 데모 팀 생성 → 보드 → 리포트까지 헤드리스 실행
+python selftest.py   # DB·주차 계산·팝업 트리거·검토/판정·리포트·백업 왕복·계정/세션/이름 연결/첨부
+python uitest.py     # Streamlit AppTest 로 데모 → 보드 → 리포트 + 회원가입 → 팀 만들기 → 코드 참여까지 헤드리스 실행
 ```
 
 ## 7. 프로젝트 구조
@@ -91,7 +113,7 @@ python uitest.py     # Streamlit AppTest 로 데모 팀 생성 → 보드 → �
 ```
 app.py          Streamlit UI (팀 등록·보드·제출·팝업·역할·리포트·프롬프트 기록)
 ai.py           Multi-AI 파이프라인 (4개 프롬프트 + OpenAI 호환 클라이언트 + 규칙 기반 대체)
-db.py           SQLite 저장소, 주차/마감 계산, 데모 시드, JSON 백업
+db.py           저장소(Postgres/SQLite 공용), 계정·세션·팀원 연결, 첨부파일, 주차/마감 계산, 데모 시드, JSON 백업
 docs/tilon_gpu.md   교내 GPU 활용 방법
 PROMPT_LOG.md   프롬프트 기록 (서비스 내 프롬프트 + 바이브코딩 프롬프트)
 slide/slide.html    발표자료 1장 (브라우저에서 열고 PDF 저장)

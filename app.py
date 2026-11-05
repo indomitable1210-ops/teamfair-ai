@@ -17,10 +17,11 @@ import ai
 import db
 
 st.set_page_config(page_title="팀플 서약", page_icon="🤝", layout="wide")
-db.init()
-
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+try:
+    db.init()
+except Exception as _e:  # noqa: BLE001
+    st.error(f"데이터베이스에 연결할 수 없습니다: {_e}")
+    st.stop()
 
 st.markdown(
     """
@@ -84,11 +85,97 @@ def go(team_code: str, me: str | None = None) -> None:
     st.rerun()
 
 
+# ───────────────────────── 로그인 세션 ─────────────────────────
+# 로그인하면 DB 의 sessions 테이블에 토큰을 만들고 URL 쿼리(?s=토큰)에 실어 둔다.
+# 새로고침·재접속해도 URL 의 토큰으로 자동 로그인되고, 서버가 재시작돼도 DB 에 남아 있다.
+
+def google_enabled() -> bool:
+    """secrets.toml 에 [auth] + [auth.google] 이 있으면 Streamlit 내장 OIDC 로그인 사용 가능."""
+    try:
+        return bool(st.secrets["auth"]["google"]["client_id"])  # type: ignore[index]
+    except Exception:
+        return False
+
+
+def google_user() -> dict | None:
+    """st.login('google') 로 로그인된 구글 사용자를 우리 users 테이블과 연결해 돌려준다."""
+    if not google_enabled():
+        return None
+    try:
+        if not st.user.is_logged_in:
+            return None
+        email = getattr(st.user, "email", None)
+        if not email:
+            return None
+        return db.upsert_oauth_user(email, getattr(st.user, "name", "") or "", "google")
+    except Exception:
+        return None
+
+
+def current_user() -> dict | None:
+    u = st.session_state.get("user")
+    if u:
+        return u
+    g = google_user()
+    if g:
+        st.session_state.user = g
+        st.session_state.sess_token = ""
+        return g
+    tok = st.query_params.get("s")
+    if tok:
+        u = db.user_by_session(tok)
+        if u:
+            st.session_state.user = u
+            st.session_state.sess_token = tok
+            return u
+        st.query_params.pop("s", None)
+    return None
+
+
+def login(user: dict) -> None:
+    tok = db.create_session(user["email"])
+    st.session_state.user = user
+    st.session_state.sess_token = tok
+    st.session_state.pop("guest", None)
+    st.query_params["s"] = tok
+
+
+def logout() -> None:
+    db.delete_session(st.session_state.get("sess_token", ""))
+    for k in ("user", "sess_token", "team_code", "me", "pd_step", "guest", "report"):
+        st.session_state.pop(k, None)
+    st.query_params.clear()
+    if google_enabled():
+        try:
+            if st.user.is_logged_in:
+                st.logout()
+                return
+        except Exception:
+            pass
+    st.rerun()
+
+
+USER = current_user()
+
+
 # ───────────────────────── 사이드바 ─────────────────────────
 
 with st.sidebar:
     st.markdown("## 🤝 팀플 서약")
     st.caption("무임승차 없는 팀 프로젝트 · 매주 작업물로 증명하기")
+
+    if USER:
+        _prov = " · Google" if USER.get("provider") == "google" else ""
+        st.markdown(f"👤 **{esc(USER['name'])}**  \n<span class='small'>{esc(USER['email'])}{_prov}</span>", unsafe_allow_html=True)
+        if st.button("로그아웃", use_container_width=True):
+            logout()
+    elif st.session_state.get("guest"):
+        st.caption("👤 체험 모드 (로그인 안 함)")
+        if st.button("로그인 / 회원가입", use_container_width=True):
+            for k in ("team_code", "me", "pd_step", "guest"):
+                st.session_state.pop(k, None)
+            st.rerun()
+    st.caption(f"💾 저장소: {db.storage_label()}")
 
     with st.expander("🧠 AI 설정", expanded=False):
         names = list(ai.PROVIDERS)
@@ -149,10 +236,106 @@ with st.sidebar:
 
 # ───────────────────────── 랜딩 (팀 만들기 / 참여) ─────────────────────────
 
-def landing() -> None:
+def demo_button() -> None:
+    st.subheader("🎬 바로 체험 (데모 팀)")
+    st.caption("로그인 없이 체험할 수 있습니다. 4명 · 3주 과제 · 현재 3주차. **박지훈**은 한 번도 올리지 않았습니다. 박지훈으로 입장하면 팝업을 볼 수 있어요.")
+    if st.button("데모 팀 생성하고 입장", use_container_width=True):
+        llm = ai.LLM(None, "", "", enabled=False)  # 데모 시드는 즉시 생성(규칙 기반 검토)
+        team = db.seed_demo(lambda **kw: ai.review_submission(llm, **kw))
+        if not USER:
+            st.session_state.guest = True
+        go(team["code"], "박지훈")
+
+
+def auth_page() -> None:
+    """로그인 전 첫 화면: 로그인 / 회원가입 + 데모 체험."""
     st.title("🤝 팀플 서약")
     st.markdown("##### 팀플 시작 전에 팀을 등록하고, **매주 작업물로 기여를 증명**하세요. 올리지 않으면… 팝업이 묻습니다.")
-    st.caption("AI가 역할을 설계하고, 제출물이 '진짜 작업물'인지 검토·판정하며, 학기 말 기여도 리포트를 만들어 줍니다.")
+    st.caption("AI가 역할을 설계하고, 제출물이 '진짜 작업물'인지 검토·판정하며, 학기 말 기여도 리포트를 만들어 줍니다. "
+               "이메일 계정으로 로그인하면 **내가 어느 팀의 누구인지**가 고정되어 다른 사람 이름으로 제출할 수 없습니다.")
+    left, right = st.columns([1, 1])
+    with left:
+        if google_enabled():
+            if st.button("🇬 Google 계정으로 계속하기", use_container_width=True, type="primary"):
+                st.login("google")
+            st.caption("또는 이메일로")
+        t_login, t_join = st.tabs(["🔑 로그인", "✨ 회원가입"])
+        with t_login:
+            with st.form("login"):
+                email = st.text_input("이메일", placeholder="name@univ.ac.kr", key="li_email")
+                pw = st.text_input("비밀번호", type="password", key="li_pw")
+                ok = st.form_submit_button("로그인", use_container_width=True)
+            if ok:
+                u = db.verify_login(email, pw)
+                if u:
+                    login(u)
+                    st.rerun()
+                else:
+                    ex = db.get_user(email)
+                    if ex and not ex.get("has_password"):
+                        st.error("이 이메일은 Google 로그인으로 가입된 계정입니다. 위의 'Google 계정으로 계속하기'를 눌러 주세요.")
+                    else:
+                        st.error("이메일 또는 비밀번호가 올바르지 않습니다.")
+        with t_join:
+            with st.form("signup"):
+                name = st.text_input("이름 (팀원 명단에 적힌 이름과 같게)", placeholder="예: 김민수")
+                email2 = st.text_input("이메일", placeholder="name@univ.ac.kr", key="su_email")
+                pw1 = st.text_input("비밀번호 (6자 이상)", type="password", key="su_pw1")
+                pw2 = st.text_input("비밀번호 확인", type="password", key="su_pw2")
+                ok2 = st.form_submit_button("가입하고 시작하기", use_container_width=True)
+            if ok2:
+                if pw1 != pw2:
+                    st.error("비밀번호 확인이 일치하지 않습니다.")
+                else:
+                    try:
+                        u = db.register_user(email2, name, pw1)
+                        login(u)
+                        st.success("가입 완료! 바로 로그인되었습니다.")
+                        st.rerun()
+                    except ValueError as e:
+                        st.error(str(e))
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"가입에 실패했습니다: {e}")
+    with right:
+        demo_button()
+        st.divider()
+        st.markdown("**어떻게 쓰나요?**")
+        st.markdown("1. 팀장이 가입 → **팀 만들기** (팀원 이름, 가능하면 이메일까지)\n"
+                    "2. 팀원은 가입 → **초대 코드**로 참여 → 명단에서 내 이름 1회 연결\n"
+                    "3. 매주 작업물 올리기 → AI 검토·판정 → 미제출이면 팝업")
+
+
+def parse_members(raw: str) -> tuple[list[str], dict]:
+    """한 줄에 '이름' 또는 '이름, 이메일'. → (이름 목록, {이름: 이메일})"""
+    names, emails = [], {}
+    for line in raw.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in line.replace("\t", ",").replace(" ", ",").split(",") if p.strip()]
+        nm = parts[0]
+        em = next((p for p in parts[1:] if "@" in p), "")
+        names.append(nm)
+        if em:
+            emails[nm] = em
+    return names, emails
+
+
+def landing() -> None:
+    st.title("🤝 팀플 서약")
+    st.markdown(f"##### 안녕하세요, **{esc(USER['name'])}** 님. 팀을 만들거나 초대 코드로 참여하세요.", unsafe_allow_html=True)
+
+    my_teams = db.teams_for_email(USER["email"])
+    if my_teams:
+        st.subheader("📌 내 팀")
+        cols = st.columns(min(3, len(my_teams)))
+        for i, t in enumerate(my_teams):
+            with cols[i % len(cols)].container(border=True):
+                st.markdown(f"**{esc(t['course'])} · {esc(t['name'])}**  \n<span class='small'>나: {esc(t['my_name'])}"
+                            f"{' · 팀장' if t['leader'] == t['my_name'] else ''} · {t['weeks']}주 · 코드 {t['code']}</span>", unsafe_allow_html=True)
+                if st.button("입장", key=f"enter_{t['id']}", use_container_width=True):
+                    go(t["code"], t["my_name"])
+        st.divider()
 
     left, right = st.columns([1.15, 1])
     with left:
@@ -160,7 +343,9 @@ def landing() -> None:
         with st.form("create_team"):
             course = st.text_input("팀플 수업 이름", placeholder="예: 경영정보시스템")
             tname = st.text_input("팀 이름", placeholder="예: 3조")
-            members_raw = st.text_area("구성원 이름 (한 줄에 한 명, 첫 번째가 팀장)", placeholder="김민수\n이서연\n박지훈\n최유진", height=110)
+            members_raw = st.text_area("구성원 (한 줄에 한 명 · 첫 번째가 팀장 · 이메일을 함께 적으면 자동 연결)",
+                                       value=f"{USER['name']}, {USER['email']}\n",
+                                       placeholder="김민수, minsu@univ.ac.kr\n이서연, seoyeon@univ.ac.kr\n박지훈\n최유진", height=130)
             assignment = st.text_area("이 수업에서 함께 해야 하는 과제", placeholder="예: 국내 편의점 3사 앱 UX 비교 분석 보고서(10쪽) + 발표(10분)", height=90)
             c1, c2 = st.columns(2)
             weeks = c1.number_input("프로젝트 기간 (주)", 1, 16, 4)
@@ -168,14 +353,21 @@ def landing() -> None:
             use_ai = st.checkbox("AI로 역할·주차별 목표 자동 설계", value=True)
             ok = st.form_submit_button("팀 만들기 🚀", use_container_width=True)
         if ok:
-            members = [m.strip() for m in members_raw.replace(",", "\n").split("\n") if m.strip()]
+            members, emails = parse_members(members_raw)
             if not course or not tname or len(members) < 2 or not assignment:
                 st.error("수업 이름, 팀 이름, 구성원 2명 이상, 과제 내용을 모두 입력해 주세요.")
             elif len(set(members)) != len(members):
                 st.error("구성원 이름이 중복됩니다.")
+            elif len(set(emails.values())) != len(emails):
+                st.error("같은 이메일이 두 명에게 적혀 있습니다.")
             else:
+                # 만든 사람은 자동으로 자기 이름(명단에 있으면 그 이름, 없으면 팀장)에 연결
+                my_name = next((n for n in members if emails.get(n, "").lower() == USER["email"]), None)
+                if not my_name:
+                    my_name = USER["name"] if USER["name"] in members else members[0]
+                    emails[my_name] = USER["email"]
                 team = db.create_team(course=course, name=tname, assignment=assignment, start_date=sdate,
-                                      weeks=int(weeks), leader=members[0], members=members)
+                                      weeks=int(weeks), leader=members[0], members=members, emails=emails)
                 llm = get_llm()
                 with st.spinner("AI가 역할과 주차별 목표를 설계하는 중…" if (use_ai and llm.available) else "역할 템플릿 생성 중…"):
                     try:
@@ -186,27 +378,37 @@ def landing() -> None:
                     db.save_plan(team["id"], plan)
                     flush_logs(team["id"], llm)
                 st.success(f"팀이 만들어졌습니다! 초대 코드 **{team['code']}** 를 팀원에게 공유하세요.")
-                go(team["code"], members[0])
+                go(team["code"], my_name)
 
     with right:
         st.subheader("② 팀 참여하기")
-        code = st.text_input("초대 코드", placeholder="예: DEMO01").strip().upper()
+        code = st.text_input("초대 코드", placeholder="예: AB12CD").strip().upper()
         if code:
             team = db.get_team(code)
             if not team:
                 st.error("해당 코드의 팀이 없습니다.")
             else:
                 st.info(f"{team['course']} · {team['name']} · {team['weeks']}주 과제")
-                me = st.selectbox("내 이름", [m["name"] for m in db.list_members(team["id"])])
-                if st.button("입장하기", use_container_width=True):
-                    go(code, me)
+                mine = db.member_by_email(team["id"], USER["email"])
+                if mine:
+                    st.success(f"이 팀에 **{mine['name']}** 으로 등록되어 있습니다.")
+                    if st.button("입장하기", use_container_width=True):
+                        go(code, mine["name"])
+                else:
+                    free = [m["name"] for m in db.list_members(team["id"]) if not m.get("email")]
+                    if not free:
+                        st.error("이 팀의 모든 이름이 이미 다른 계정과 연결되어 있습니다. 팀장에게 확인해 주세요.")
+                    else:
+                        default = free.index(USER["name"]) if USER["name"] in free else 0
+                        me = st.selectbox("명단에서 내 이름을 선택 (한 번 연결하면 바꿀 수 없습니다)", free, index=default)
+                        if st.button("내 이름으로 연결하고 입장", use_container_width=True):
+                            try:
+                                db.claim_member(team["id"], me, USER["email"])
+                                go(code, me)
+                            except ValueError as e:
+                                st.error(str(e))
         st.divider()
-        st.subheader("🎬 바로 체험 (데모 팀)")
-        st.caption("4명 · 3주 과제 · 현재 3주차. **박지훈**은 한 번도 올리지 않았습니다. 박지훈으로 입장하면 팝업을 볼 수 있어요.")
-        if st.button("데모 팀 생성하고 입장", use_container_width=True):
-            llm = ai.LLM(None, "", "", enabled=False)  # 데모 시드는 즉시 생성(규칙 기반 검토)
-            team = db.seed_demo(lambda **kw: ai.review_submission(llm, **kw))
-            go(team["code"], "박지훈")
+        demo_button()
 
 
 # ───────────────────────── 평화 팝업 ─────────────────────────
@@ -282,6 +484,14 @@ def team_page(team: dict) -> None:
     exts = db.list_extensions(team["id"])
     me_name = st.session_state.get("me")
     me = db.get_member(team["id"], me_name) if me_name else None
+    if USER:
+        # 로그인한 사용자는 이메일로 연결된 팀원이 '나'. 다른 사람 이름으로는 들어갈 수 없다.
+        linked = db.member_by_email(team["id"], USER["email"])
+        if linked:
+            me = linked
+            st.session_state.me = linked["name"]
+        elif me and me.get("email"):
+            me = None  # 다른 계정의 이름
     cur_w = db.current_week(team)
     now = db.team_now(team)
 
@@ -294,9 +504,28 @@ def team_page(team: dict) -> None:
 
     if not me:
         st.title(f"{team['course']} · {team['name']}")
-        me_sel = st.selectbox("내 이름을 선택하세요", [m["name"] for m in members])
-        if st.button("입장"):
-            go(team["code"], me_sel)
+        if USER:
+            free = [m["name"] for m in members if not m.get("email")]
+            if not free:
+                st.error("이 팀의 모든 이름이 이미 다른 계정과 연결되어 있습니다. 팀장에게 확인해 주세요.")
+                return
+            me_sel = st.selectbox("명단에서 내 이름을 선택하세요 (한 번 연결하면 바꿀 수 없습니다)", free,
+                                  index=free.index(USER["name"]) if USER["name"] in free else 0)
+            if st.button("내 이름으로 연결하고 입장"):
+                try:
+                    db.claim_member(team["id"], me_sel, USER["email"])
+                    go(team["code"], me_sel)
+                except ValueError as e:
+                    st.error(str(e))
+        elif team["code"] == db.DEMO_CODE or st.session_state.get("guest"):
+            me_sel = st.selectbox("내 이름을 선택하세요", [m["name"] for m in members])
+            if st.button("입장"):
+                go(team["code"], me_sel)
+        else:
+            st.info("이 팀에 들어가려면 로그인이 필요합니다.")
+            if st.button("로그인 화면으로"):
+                st.session_state.pop("team_code", None)
+                st.rerun()
         return
 
     # 팝업 트리거
@@ -394,7 +623,11 @@ def team_page(team: dict) -> None:
                     if s["link"]:
                         st.markdown(f"🔗 {s['link']}")
                     if s["filename"]:
-                        st.markdown(f"📎 {s['filename']}")
+                        data = db.get_file(s["filename"])
+                        if data is not None:
+                            st.download_button(f"📎 {s['filename']}", data, file_name=s["filename"].split("_", 3)[-1], key=f"dl_{s['id']}")
+                        else:
+                            st.markdown(f"📎 {s['filename']}")
                     rv = s["review"].get("review", {})
                     if rv:
                         st.caption("AI 검토 · " + rv.get("summary", ""))
@@ -428,9 +661,11 @@ def team_page(team: dict) -> None:
                         fname = ""
                         if f is not None:
                             safe = os.path.basename(f.name).replace(" ", "_")
-                            fname = f"{team['code']}_w{w}_{me['name']}_{safe}"
-                            with open(os.path.join(UPLOAD_DIR, fname), "wb") as fp:
-                                fp.write(f.getbuffer())
+                            try:
+                                fname = db.save_file(team["id"], f"{team['code']}_w{w}_{me['name']}_{safe}", bytes(f.getbuffer()))
+                            except ValueError as e:
+                                st.error(str(e))
+                                st.stop()
                         llm = get_llm()
                         prior = [{"member": s["member"], "week": s["week"], "text": s["text"] or "", "link": s["link"] or ""} for s in subs]
                         with st.spinner("유사도 검사 → 검토 AI → 판정 AI 가 제출물을 확인하는 중…" if llm.available else "유사도 검사 + 규칙 기반 검토 중…"):
@@ -566,12 +801,19 @@ def team_page(team: dict) -> None:
 
 # ───────────────────────── 라우팅 ─────────────────────────
 
+def home() -> None:
+    if USER:
+        landing()
+    else:
+        auth_page()
+
+
 if st.session_state.get("team_code"):
     _team = db.get_team(st.session_state.team_code)
     if _team:
         team_page(_team)
     else:
         st.session_state.pop("team_code", None)
-        landing()
+        home()
 else:
-    landing()
+    home()

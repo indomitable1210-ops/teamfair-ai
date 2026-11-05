@@ -76,3 +76,39 @@ assert "박지훈" in b["headline"] and b["risks"] and b["waiting_on"], b
 db.save_briefing(team["id"], 1, b); assert db.get_briefing(team["id"], 1)["headline"] == b["headline"]
 print("briefing:", b["headline"], "| waiting:", b["waiting_on"][0])
 print("ALL SELFTESTS PASSED (incl. similarity + briefing)")
+
+# ── 추가 기능: 이메일 계정 / 로그인 세션 / 팀원-계정 연결 / 첨부 파일 DB 저장
+u = db.register_user("Minsu@Univ.ac.kr", "김민수", "secret1"); assert u["email"] == "minsu@univ.ac.kr"
+for bad in [("x", "a", "secret1"), ("a@b.c", "", "secret1"), ("a@b.c", "a", "123"), ("minsu@univ.ac.kr", "a", "secret1")]:
+    try:
+        db.register_user(*bad); raise AssertionError(bad)
+    except ValueError:
+        pass
+assert db.verify_login("minsu@univ.ac.kr", "wrong") is None and db.verify_login("minsu@univ.ac.kr", "secret1")["name"] == "김민수"
+tok = db.create_session("minsu@univ.ac.kr"); assert db.user_by_session(tok)["email"] == "minsu@univ.ac.kr"
+assert db.user_by_session("nope") is None
+db.delete_session(tok); assert db.user_by_session(tok) is None
+t3 = db.create_team(course="c", name="n", assignment="a", start_date=__import__("datetime").date.today(), weeks=2, leader="김민수",
+                    members=["김민수", "이서연", "박지훈"], emails={"김민수": "minsu@univ.ac.kr"})
+assert db.member_by_email(t3["id"], "MINSU@univ.ac.kr")["name"] == "김민수"
+assert [t["my_name"] for t in db.teams_for_email("minsu@univ.ac.kr")] == ["김민수"]
+db.claim_member(t3["id"], "이서연", "seo@univ.ac.kr")
+for bad in [("이서연", "other@x.com"), ("박지훈", "seo@univ.ac.kr"), ("없는사람", "z@x.com")]:
+    try:
+        db.claim_member(t3["id"], *bad); raise AssertionError(bad)
+    except ValueError:
+        pass
+fn1 = db.save_file(t3["id"], "T_w1_김민수_a.txt", b"hello"); fn2 = db.save_file(t3["id"], "T_w1_김민수_a.txt", b"world")
+assert fn1 != fn2 and db.get_file(fn1) == b"hello" and db.get_file(fn2) == b"world" and db.get_file("none") is None
+try:
+    db.save_file(t3["id"], "big.bin", b"0" * (db.MAX_FILE_BYTES + 1)); raise AssertionError("size limit")
+except ValueError:
+    pass
+db.delete_team(t3["id"]); assert db.get_file(fn1) is None
+print("auth/session/claim/attachments ok ·", db.storage_label())
+print("ALL SELFTESTS PASSED (incl. auth)")
+
+g = db.upsert_oauth_user("G@Gmail.com", "구글러", "google"); assert g["provider"] == "google" and not g["has_password"]
+assert db.verify_login("g@gmail.com", "anything") is None and db.upsert_oauth_user("g@gmail.com", "x")["id"] == g["id"]
+assert db.verify_login("minsu@univ.ac.kr", "secret1")["has_password"]
+print("oauth user ok · ALL SELFTESTS PASSED (incl. google)")
