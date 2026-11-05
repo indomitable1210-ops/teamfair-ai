@@ -1,6 +1,9 @@
 """헤드리스 자가 점검: DB, 데모 시드, 주차 상태, 팝업 트리거, 규칙 기반 검토/리포트, OpenAI 호환 클라이언트 생성."""
 import os, tempfile, json
-os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "")  # 테스트는 항상 임시 SQLite. Postgres 로 돌리려면 TEST_DATABASE_URL 지정
+if os.environ.get("TEST_DATABASE_URL"):  # Postgres 로 테스트하려면 TEST_DATABASE_URL 지정 (운영 DB 에는 쓰지 말 것)
+    os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
+else:  # 기본: secrets.toml 이 있어도 무시하고 임시 SQLite 사용
+    os.environ["TEAMFAIR_FORCE_SQLITE"] = "1"
 os.environ["TEAMFAIR_DB"] = os.path.join(tempfile.mkdtemp(), "t.db")
 import db, ai
 

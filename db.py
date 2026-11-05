@@ -28,9 +28,9 @@ MAX_FILE_BYTES = 8 * 1024 * 1024
 
 def _database_url() -> str:
     """환경변수 → st.secrets 순으로 DATABASE_URL 을 찾는다. (st 가 없으면 환경변수만)"""
-    if "DATABASE_URL" in os.environ:  # 환경변수가 있으면(빈 값 포함) 그것이 우선 → 테스트에서 SQLite 강제 가능
-        return os.environ["DATABASE_URL"].strip()
-    url = ""
+    if os.environ.get("TEAMFAIR_FORCE_SQLITE"):  # 테스트용: secrets/환경변수와 무관하게 로컬 SQLite 강제
+        return ""
+    url = os.environ.get("DATABASE_URL", "").strip()  # Streamlit 은 secrets.toml 값을 환경변수로도 내보낸다
     if not url:
         try:
             import streamlit as st  # noqa: WPS433
