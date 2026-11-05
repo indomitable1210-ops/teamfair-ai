@@ -89,38 +89,10 @@ def go(team_code: str, me: str | None = None) -> None:
 # 로그인하면 DB 의 sessions 테이블에 토큰을 만들고 URL 쿼리(?s=토큰)에 실어 둔다.
 # 새로고침·재접속해도 URL 의 토큰으로 자동 로그인되고, 서버가 재시작돼도 DB 에 남아 있다.
 
-def google_enabled() -> bool:
-    """secrets.toml 에 [auth] + [auth.google] 이 있으면 Streamlit 내장 OIDC 로그인 사용 가능."""
-    try:
-        return bool(st.secrets["auth"]["google"]["client_id"])  # type: ignore[index]
-    except Exception:
-        return False
-
-
-def google_user() -> dict | None:
-    """st.login('google') 로 로그인된 구글 사용자를 우리 users 테이블과 연결해 돌려준다."""
-    if not google_enabled():
-        return None
-    try:
-        if not st.user.is_logged_in:
-            return None
-        email = getattr(st.user, "email", None)
-        if not email:
-            return None
-        return db.upsert_oauth_user(email, getattr(st.user, "name", "") or "", "google")
-    except Exception:
-        return None
-
-
 def current_user() -> dict | None:
     u = st.session_state.get("user")
     if u:
         return u
-    g = google_user()
-    if g:
-        st.session_state.user = g
-        st.session_state.sess_token = ""
-        return g
     tok = st.query_params.get("s")
     if tok:
         u = db.user_by_session(tok)
@@ -134,25 +106,92 @@ def current_user() -> dict | None:
 
 def login(user: dict) -> None:
     tok = db.create_session(user["email"])
-    st.session_state.user = user
+    st.session_state.user = {k: user[k] for k in ("id", "email", "name", "created_at", "last_login_at") if k in user}
     st.session_state.sess_token = tok
     st.session_state.pop("guest", None)
     st.query_params["s"] = tok
 
 
-def logout() -> None:
-    db.delete_session(st.session_state.get("sess_token", ""))
-    for k in ("user", "sess_token", "team_code", "me", "pd_step", "guest", "report"):
+def clear_login_state() -> None:
+    for k in ("user", "sess_token", "team_code", "me", "pd_step", "guest", "report", "recovery_code"):
         st.session_state.pop(k, None)
     st.query_params.clear()
-    if google_enabled():
-        try:
-            if st.user.is_logged_in:
-                st.logout()
-                return
-        except Exception:
-            pass
+
+
+def logout() -> None:
+    db.delete_session(st.session_state.get("sess_token", ""))
+    clear_login_state()
     st.rerun()
+
+
+def recovery_box(code: str, title: str = "복구 코드를 지금 적어 두세요") -> None:
+    """비밀번호를 잊었을 때 쓰는 복구 코드. 가입·재발급·재설정 직후 1회만 보여준다."""
+    st.warning(f"**{title}**  \n비밀번호를 잊으면 이 코드로만 되찾을 수 있습니다. 이 화면을 벗어나면 다시 볼 수 없습니다. "
+               "(잃어버리면 로그인 후 「내 계정」에서 재발급 가능)")
+    st.code(code, language=None)
+
+
+def account_panel() -> None:
+    """사이드바 「내 계정」: 이름 변경 · 비밀번호 변경 · 복구 코드 재발급 · 모든 기기 로그아웃 · 회원 탈퇴"""
+    with st.expander("⚙️ 내 계정", expanded=False):
+        t1, t2, t3, t4 = st.tabs(["이름", "비밀번호", "복구 코드", "탈퇴"])
+        with t1:
+            with st.form("acc_name"):
+                nm = st.text_input("표시 이름", USER["name"], max_chars=30)
+                if st.form_submit_button("이름 변경", use_container_width=True):
+                    try:
+                        st.session_state.user = db.rename_user(USER["email"], nm)
+                        st.session_state.toast_msg = "이름을 변경했습니다."
+                        st.rerun()
+                    except ValueError as e:
+                        st.error(str(e))
+            st.caption("팀 안에서 쓰는 이름은 팀원 명단의 이름을 따르며, 여기서 바꿔도 팀 명단은 바뀌지 않습니다.")
+        with t2:
+            with st.form("acc_pw"):
+                cur = st.text_input("현재 비밀번호", type="password")
+                n1 = st.text_input(f"새 비밀번호 ({db.PW_MIN}자 이상)", type="password")
+                n2 = st.text_input("새 비밀번호 확인", type="password")
+                if st.form_submit_button("비밀번호 변경", use_container_width=True):
+                    if n1 != n2:
+                        st.error("새 비밀번호 확인이 일치하지 않습니다.")
+                    else:
+                        try:
+                            db.change_password(USER["email"], cur, n1)
+                            st.success("비밀번호를 변경했습니다. 다른 기기에서는 다시 로그인해야 할 수 있습니다.")
+                        except ValueError as e:
+                            st.error(str(e))
+            n_sess = db.count_sessions(USER["email"])
+            st.caption(f"현재 로그인된 기기/브라우저: {n_sess}개")
+            if st.button("모든 기기에서 로그아웃", use_container_width=True, key="acc_logout_all"):
+                db.delete_all_sessions(USER["email"])
+                clear_login_state()
+                st.rerun()
+        with t3:
+            st.caption("복구 코드는 비밀번호를 잊었을 때 「비밀번호 찾기」에 쓰는 8자리 코드입니다. 재발급하면 이전 코드는 무효가 됩니다.")
+            with st.form("acc_rc"):
+                pw = st.text_input("비밀번호 확인", type="password")
+                if st.form_submit_button("복구 코드 재발급", use_container_width=True):
+                    try:
+                        st.session_state.recovery_code = db.regenerate_recovery_code(USER["email"], pw)
+                        st.rerun()
+                    except ValueError as e:
+                        st.error(str(e))
+        with t4:
+            st.caption("탈퇴하면 계정과 로그인 정보가 삭제됩니다. 팀의 제출 기록은 팀원들을 위해 남지만, 내 계정과의 연결은 끊어집니다.")
+            with st.form("acc_del"):
+                pw = st.text_input("비밀번호", type="password")
+                sure = st.checkbox("위 내용을 이해했고 탈퇴에 동의합니다.")
+                if st.form_submit_button("회원 탈퇴", use_container_width=True, type="primary"):
+                    if not sure:
+                        st.error("동의 체크가 필요합니다.")
+                    else:
+                        try:
+                            db.delete_user(USER["email"], pw)
+                            clear_login_state()
+                            st.session_state.flash = "탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다."
+                            st.rerun()
+                        except ValueError as e:
+                            st.error(str(e))
 
 
 USER = current_user()
@@ -165,10 +204,10 @@ with st.sidebar:
     st.caption("무임승차 없는 팀 프로젝트 · 매주 작업물로 증명하기")
 
     if USER:
-        _prov = " · Google" if USER.get("provider") == "google" else ""
-        st.markdown(f"👤 **{esc(USER['name'])}**  \n<span class='small'>{esc(USER['email'])}{_prov}</span>", unsafe_allow_html=True)
+        st.markdown(f"👤 **{esc(USER['name'])}**  \n<span class='small'>{esc(USER['email'])}</span>", unsafe_allow_html=True)
         if st.button("로그아웃", use_container_width=True):
             logout()
+        account_panel()
     elif st.session_state.get("guest"):
         st.caption("👤 체험 모드 (로그인 안 함)")
         if st.button("로그인 / 회원가입", use_container_width=True):
@@ -248,39 +287,44 @@ def demo_button() -> None:
 
 
 def auth_page() -> None:
-    """로그인 전 첫 화면: 로그인 / 회원가입 + 데모 체험."""
+    """로그인 전 첫 화면: 로그인 / 회원가입 / 비밀번호 찾기 + 데모 체험."""
     st.title("🤝 팀플 서약")
     st.markdown("##### 팀플 시작 전에 팀을 등록하고, **매주 작업물로 기여를 증명**하세요. 올리지 않으면… 팝업이 묻습니다.")
     st.caption("AI가 역할을 설계하고, 제출물이 '진짜 작업물'인지 검토·판정하며, 학기 말 기여도 리포트를 만들어 줍니다. "
                "이메일 계정으로 로그인하면 **내가 어느 팀의 누구인지**가 고정되어 다른 사람 이름으로 제출할 수 없습니다.")
+    flash = st.session_state.pop("flash", None)
+    if flash:
+        st.success(flash)
+    if st.session_state.get("recovery_code"):
+        recovery_box(st.session_state.pop("recovery_code"), "새 복구 코드가 발급되었습니다")
     left, right = st.columns([1, 1])
     with left:
-        if google_enabled():
-            if st.button("🇬 Google 계정으로 계속하기", use_container_width=True, type="primary"):
-                st.login("google")
-            st.caption("또는 이메일로")
-        t_login, t_join = st.tabs(["🔑 로그인", "✨ 회원가입"])
+        t_login, t_join, t_find = st.tabs(["🔑 로그인", "✨ 회원가입", "🔓 비밀번호 찾기"])
         with t_login:
             with st.form("login"):
                 email = st.text_input("이메일", placeholder="name@univ.ac.kr", key="li_email")
                 pw = st.text_input("비밀번호", type="password", key="li_pw")
                 ok = st.form_submit_button("로그인", use_container_width=True)
             if ok:
-                u = db.verify_login(email, pw)
-                if u:
-                    login(u)
-                    st.rerun()
+                left_s = db.login_lock_remaining(email)
+                if left_s:
+                    st.error(f"로그인 {db.LOCK_AFTER}회 실패로 잠겨 있습니다. {left_s // 60}분 {left_s % 60}초 후 다시 시도하거나 「비밀번호 찾기」를 이용하세요.")
                 else:
-                    ex = db.get_user(email)
-                    if ex and not ex.get("has_password"):
-                        st.error("이 이메일은 Google 로그인으로 가입된 계정입니다. 위의 'Google 계정으로 계속하기'를 눌러 주세요.")
+                    u = db.verify_login(email, pw)
+                    if u:
+                        login(u)
+                        st.rerun()
                     else:
-                        st.error("이메일 또는 비밀번호가 올바르지 않습니다.")
+                        left_s = db.login_lock_remaining(email)
+                        if left_s:
+                            st.error(f"{db.LOCK_AFTER}회 연속 실패로 {db.LOCK_MINUTES}분간 로그인이 잠겼습니다. 「비밀번호 찾기」로 재설정할 수 있습니다.")
+                        else:
+                            st.error("이메일 또는 비밀번호가 올바르지 않습니다.")
         with t_join:
             with st.form("signup"):
-                name = st.text_input("이름 (팀원 명단에 적힌 이름과 같게)", placeholder="예: 김민수")
+                name = st.text_input("이름 (팀원 명단에 적힌 이름과 같게)", placeholder="예: 김민수", max_chars=30)
                 email2 = st.text_input("이메일", placeholder="name@univ.ac.kr", key="su_email")
-                pw1 = st.text_input("비밀번호 (6자 이상)", type="password", key="su_pw1")
+                pw1 = st.text_input(f"비밀번호 ({db.PW_MIN}자 이상)", type="password", key="su_pw1")
                 pw2 = st.text_input("비밀번호 확인", type="password", key="su_pw2")
                 ok2 = st.form_submit_button("가입하고 시작하기", use_container_width=True)
             if ok2:
@@ -290,12 +334,34 @@ def auth_page() -> None:
                     try:
                         u = db.register_user(email2, name, pw1)
                         login(u)
-                        st.success("가입 완료! 바로 로그인되었습니다.")
+                        st.session_state.recovery_code = u["recovery_code"]
                         st.rerun()
                     except ValueError as e:
                         st.error(str(e))
                     except Exception as e:  # noqa: BLE001
                         st.error(f"가입에 실패했습니다: {e}")
+        with t_find:
+            st.caption("가입할 때 받은 **복구 코드**(예: 7KQF-M3PX)로 새 비밀번호를 설정합니다. 완료되면 모든 기기에서 로그아웃되고 새 복구 코드가 발급됩니다.")
+            with st.form("reset"):
+                email3 = st.text_input("이메일", placeholder="name@univ.ac.kr", key="rs_email")
+                code = st.text_input("복구 코드", placeholder="XXXX-XXXX", key="rs_code")
+                r1 = st.text_input(f"새 비밀번호 ({db.PW_MIN}자 이상)", type="password", key="rs_pw1")
+                r2 = st.text_input("새 비밀번호 확인", type="password", key="rs_pw2")
+                ok3 = st.form_submit_button("비밀번호 재설정", use_container_width=True)
+            if ok3:
+                if r1 != r2:
+                    st.error("새 비밀번호 확인이 일치하지 않습니다.")
+                else:
+                    try:
+                        new_code = db.reset_password_with_code(email3, code, r1)
+                        u = db.verify_login(email3, r1)
+                        login(u)
+                        st.session_state.recovery_code = new_code
+                        st.session_state.flash = "비밀번호를 재설정하고 로그인했습니다."
+                        st.rerun()
+                    except ValueError as e:
+                        st.error(str(e))
+            st.caption("복구 코드까지 잃어버렸다면 팀장에게 요청해 명단에서 이름 연결을 풀고 새 계정으로 다시 가입하세요.")
     with right:
         demo_button()
         st.divider()
@@ -324,6 +390,16 @@ def parse_members(raw: str) -> tuple[list[str], dict]:
 def landing() -> None:
     st.title("🤝 팀플 서약")
     st.markdown(f"##### 안녕하세요, **{esc(USER['name'])}** 님. 팀을 만들거나 초대 코드로 참여하세요.", unsafe_allow_html=True)
+    flash = st.session_state.pop("flash", None)
+    if flash:
+        st.success(flash)
+    if "toast_msg" in st.session_state:
+        st.success(st.session_state.pop("toast_msg"))
+    if st.session_state.get("recovery_code"):
+        recovery_box(st.session_state.get("recovery_code"))
+        if st.button("복구 코드를 안전한 곳에 저장했습니다", type="primary"):
+            st.session_state.pop("recovery_code", None)
+            st.rerun()
 
     my_teams = db.teams_for_email(USER["email"])
     if my_teams:

@@ -28,7 +28,9 @@ MAX_FILE_BYTES = 8 * 1024 * 1024
 
 def _database_url() -> str:
     """환경변수 → st.secrets 순으로 DATABASE_URL 을 찾는다. (st 가 없으면 환경변수만)"""
-    url = os.environ.get("DATABASE_URL", "")
+    if "DATABASE_URL" in os.environ:  # 환경변수가 있으면(빈 값 포함) 그것이 우선 → 테스트에서 SQLite 강제 가능
+        return os.environ["DATABASE_URL"].strip()
+    url = ""
     if not url:
         try:
             import streamlit as st  # noqa: WPS433
@@ -156,7 +158,7 @@ _SCHEMA = [
         id {PK}, team_id INTEGER, week INTEGER, content_json TEXT, created_at TEXT)""",
     """CREATE TABLE IF NOT EXISTS users(
         id {PK}, email TEXT UNIQUE, name TEXT, pw_hash TEXT, salt TEXT, created_at TEXT, last_login_at TEXT,
-        provider TEXT DEFAULT 'email')""",
+        recovery_hash TEXT, recovery_salt TEXT, failed_count INTEGER DEFAULT 0, locked_until TEXT)""",
     """CREATE TABLE IF NOT EXISTS sessions(
         id {PK}, token TEXT UNIQUE, email TEXT, created_at TEXT, expires_at TEXT)""",
     """CREATE TABLE IF NOT EXISTS attachments(
@@ -176,8 +178,9 @@ def init() -> None:
     with conn() as c:
         for stmt in _SCHEMA:
             c.execute(stmt.replace("{PK}", pk).replace("{BLOB}", blob))
-        # 구버전 DB 마이그레이션: members.email, users.provider
-        for table, col, typ in (("members", "email", "TEXT"), ("users", "provider", "TEXT DEFAULT 'email'")):
+        # 구버전 DB 마이그레이션 (없는 컬럼만 추가)
+        for table, col, typ in (("members", "email", "TEXT"), ("users", "recovery_hash", "TEXT"), ("users", "recovery_salt", "TEXT"),
+                                ("users", "failed_count", "INTEGER DEFAULT 0"), ("users", "locked_until", "TEXT")):
             if pg:
                 c.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {typ}")
             else:
@@ -200,66 +203,168 @@ def _norm_email(email: str) -> str:
 
 
 # ───────────── 사용자 계정 / 로그인 ─────────────
+# 비밀번호·복구 코드는 PBKDF2-SHA256(20만 회) 해시로만 저장. 로그인 5회 실패 시 5분 잠금.
+
+PW_MIN = 6
+LOCK_AFTER, LOCK_MINUTES = 5, 5
+
 
 def _hash_pw(pw: str, salt: str) -> str:
     return hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), salt.encode("utf-8"), 200_000).hex()
 
 
-def register_user(email: str, name: str, password: str) -> dict:
+def _new_recovery_code() -> str:
+    """사람이 적어둘 수 있는 복구 코드. 헷갈리는 글자(0/O/1/I)는 제외. 예: 7KQF-M3PX"""
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    raw = "".join(pysecrets.choice(alphabet) for _ in range(8))
+    return f"{raw[:4]}-{raw[4:]}"
+
+
+def _norm_code(code: str) -> str:
+    return (code or "").strip().upper().replace(" ", "").replace("-", "")
+
+
+def _check_password(pw: str) -> None:
+    if len(pw or "") < PW_MIN:
+        raise ValueError(f"비밀번호는 {PW_MIN}자 이상이어야 합니다.")
+    if pw.strip() != pw:
+        raise ValueError("비밀번호 앞뒤에 공백은 쓸 수 없습니다.")
+
+
+def _check_email(email: str) -> str:
     email = _norm_email(email)
-    if "@" not in email or "." not in email.split("@")[-1]:
+    local, _, domain = email.partition("@")
+    if not local or "." not in domain or " " in email or len(email) > 254:
         raise ValueError("올바른 이메일 주소를 입력해 주세요.")
-    if len(password) < 6:
-        raise ValueError("비밀번호는 6자 이상이어야 합니다.")
-    if not name.strip():
+    return email
+
+
+def _set_secret(c, user_id: int, *, password: Optional[str] = None, recovery: Optional[str] = None) -> None:
+    """비밀번호 / 복구 코드 중 넘어온 것만 새 salt 로 다시 해시해 저장."""
+    if password is not None:
+        salt = pysecrets.token_hex(16)
+        c.execute("UPDATE users SET pw_hash=?, salt=?, failed_count=0, locked_until=NULL WHERE id=?", (_hash_pw(password, salt), salt, user_id))
+    if recovery is not None:
+        rsalt = pysecrets.token_hex(16)
+        c.execute("UPDATE users SET recovery_hash=?, recovery_salt=? WHERE id=?", (_hash_pw(_norm_code(recovery), rsalt), rsalt, user_id))
+
+
+def register_user(email: str, name: str, password: str) -> dict:
+    """가입. 반환 dict 에 1회만 보여줄 'recovery_code' 가 포함된다."""
+    email = _check_email(email)
+    _check_password(password)
+    if not (name or "").strip():
         raise ValueError("이름을 입력해 주세요.")
+    if len(name.strip()) > 30:
+        raise ValueError("이름은 30자 이하로 입력해 주세요.")
     if get_user(email):
         raise ValueError("이미 가입된 이메일입니다. 로그인해 주세요.")
-    salt = pysecrets.token_hex(16)
+    code = _new_recovery_code()
     with conn() as c:
-        c.execute("INSERT INTO users(email,name,pw_hash,salt,created_at,provider) VALUES(?,?,?,?,?,'email')",
-                  (email, name.strip(), _hash_pw(password, salt), salt, _now_iso()))
-    return get_user(email)
-
-
-def upsert_oauth_user(email: str, name: str, provider: str = "google") -> dict:
-    """소셜 로그인(구글 등)으로 들어온 사용자. 없으면 비밀번호 없는 계정을 만들고, 있으면 그대로 사용."""
-    email = _norm_email(email)
-    if "@" not in email:
-        raise ValueError("소셜 로그인 계정에 이메일이 없습니다.")
+        uid = c.insert("INSERT INTO users(email,name,pw_hash,salt,created_at,failed_count) VALUES(?,?,?,?,?,0)",
+                       (email, name.strip(), "", "", _now_iso()))
+        _set_secret(c, uid, password=password, recovery=code)
     u = get_user(email)
-    if not u:
-        with conn() as c:
-            c.execute("INSERT INTO users(email,name,pw_hash,salt,created_at,last_login_at,provider) VALUES(?,?,?,?,?,?,?)",
-                      (email, (name or email.split("@")[0]).strip(), "", "", _now_iso(), _now_iso(), provider))
-    else:
-        with conn() as c:
-            c.execute("UPDATE users SET last_login_at=? WHERE id=?", (_now_iso(), u["id"]))
-    return get_user(email)
+    u["recovery_code"] = code
+    return u
 
 
 def get_user(email: str) -> Optional[dict]:
     with conn() as c:
-        r = c.execute("SELECT id,email,name,created_at,last_login_at,provider,pw_hash FROM users WHERE email=?", (_norm_email(email),)).fetchone()
-    if not r:
-        return None
-    d = dict(r)
-    d["has_password"] = bool(d.pop("pw_hash"))
-    return d
+        r = c.execute("SELECT id,email,name,created_at,last_login_at FROM users WHERE email=?", (_norm_email(email),)).fetchone()
+    return dict(r) if r else None
+
+
+def _raw_user(c, email: str) -> Optional[dict]:
+    r = c.execute("SELECT * FROM users WHERE email=?", (_norm_email(email),)).fetchone()
+    return dict(r) if r else None
+
+
+def login_lock_remaining(email: str) -> int:
+    """잠금 상태면 남은 초, 아니면 0."""
+    with conn() as c:
+        r = _raw_user(c, email)
+    if not r or not r.get("locked_until"):
+        return 0
+    left = (datetime.fromisoformat(r["locked_until"]) - datetime.now()).total_seconds()
+    return max(0, int(left))
 
 
 def verify_login(email: str, password: str) -> Optional[dict]:
+    """성공 시 사용자 dict, 실패 시 None. 실패가 LOCK_AFTER 회 쌓이면 LOCK_MINUTES 분 잠금 (잠금 중엔 맞아도 거부)."""
     email = _norm_email(email)
     with conn() as c:
-        r = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
-    if not r:
-        return None
-    r = dict(r)
-    if not r["pw_hash"] or not hmac.compare_digest(_hash_pw(password, r["salt"]), r["pw_hash"]):
-        return None  # 비밀번호 불일치 또는 소셜 전용 계정
-    with conn() as c:
-        c.execute("UPDATE users SET last_login_at=? WHERE id=?", (_now_iso(), r["id"]))
+        r = _raw_user(c, email)
+        if not r:
+            return None
+        if r.get("locked_until") and r["locked_until"] > _now_iso():
+            return None
+        if not r["pw_hash"] or not hmac.compare_digest(_hash_pw(password, r["salt"]), r["pw_hash"]):
+            n = int(r.get("failed_count") or 0) + 1
+            until = (datetime.now() + timedelta(minutes=LOCK_MINUTES)).isoformat(timespec="seconds") if n >= LOCK_AFTER else None
+            c.execute("UPDATE users SET failed_count=?, locked_until=? WHERE id=?", (0 if until else n, until, r["id"]))
+            return None
+        c.execute("UPDATE users SET last_login_at=?, failed_count=0, locked_until=NULL WHERE id=?", (_now_iso(), r["id"]))
     return get_user(email)
+
+
+def change_password(email: str, current: str, new: str) -> None:
+    _check_password(new)
+    if current == new:
+        raise ValueError("새 비밀번호가 현재 비밀번호와 같습니다.")
+    if not verify_login(email, current):
+        raise ValueError("현재 비밀번호가 올바르지 않습니다.")
+    with conn() as c:
+        r = _raw_user(c, email)
+        _set_secret(c, r["id"], password=new)
+
+
+def reset_password_with_code(email: str, code: str, new: str) -> str:
+    """비밀번호 찾기: 이메일 + 복구 코드로 새 비밀번호 설정. 새 복구 코드를 발급해 돌려준다(이전 코드는 폐기)."""
+    _check_password(new)
+    with conn() as c:
+        r = _raw_user(c, email)
+        if not r or not r.get("recovery_hash") or not hmac.compare_digest(_hash_pw(_norm_code(code), r["recovery_salt"]), r["recovery_hash"]):
+            raise ValueError("이메일 또는 복구 코드가 올바르지 않습니다.")
+        new_code = _new_recovery_code()
+        _set_secret(c, r["id"], password=new, recovery=new_code)
+        c.execute("DELETE FROM sessions WHERE email=?", (_norm_email(email),))  # 다른 기기 세션 모두 종료
+    return new_code
+
+
+def regenerate_recovery_code(email: str, password: str) -> str:
+    if not verify_login(email, password):
+        raise ValueError("비밀번호가 올바르지 않습니다.")
+    code = _new_recovery_code()
+    with conn() as c:
+        r = _raw_user(c, email)
+        _set_secret(c, r["id"], recovery=code)
+    return code
+
+
+def rename_user(email: str, name: str) -> dict:
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("이름을 입력해 주세요.")
+    if len(name) > 30:
+        raise ValueError("이름은 30자 이하로 입력해 주세요.")
+    with conn() as c:
+        c.execute("UPDATE users SET name=? WHERE email=?", (name, _norm_email(email)))
+    return get_user(email)
+
+
+def delete_user(email: str, password: str) -> int:
+    """회원 탈퇴. 비밀번호 확인 후 계정·세션 삭제. 팀 기록은 남기되 팀원-계정 연결만 해제한다.
+    반환: 연결 해제된 팀원 수."""
+    if not verify_login(email, password):
+        raise ValueError("비밀번호가 올바르지 않습니다.")
+    email = _norm_email(email)
+    with conn() as c:
+        n = len(c.execute("SELECT id FROM members WHERE email=?", (email,)).fetchall())
+        c.execute("UPDATE members SET email=NULL WHERE email=?", (email,))
+        c.execute("DELETE FROM sessions WHERE email=?", (email,))
+        c.execute("DELETE FROM users WHERE email=?", (email,))
+    return n
 
 
 def create_session(email: str) -> str:
@@ -288,6 +393,19 @@ def delete_session(token: str) -> None:
         return
     with conn() as c:
         c.execute("DELETE FROM sessions WHERE token=?", (token,))
+
+
+def delete_all_sessions(email: str) -> int:
+    """모든 기기에서 로그아웃. 반환: 지운 세션 수."""
+    with conn() as c:
+        n = len(c.execute("SELECT id FROM sessions WHERE email=?", (_norm_email(email),)).fetchall())
+        c.execute("DELETE FROM sessions WHERE email=?", (_norm_email(email),))
+    return n
+
+
+def count_sessions(email: str) -> int:
+    with conn() as c:
+        return len(c.execute("SELECT id FROM sessions WHERE email=? AND expires_at >= ?", (_norm_email(email), _now_iso())).fetchall())
 
 
 # ───────────── 팀 ─────────────

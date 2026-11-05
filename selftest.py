@@ -1,5 +1,6 @@
 """헤드리스 자가 점검: DB, 데모 시드, 주차 상태, 팝업 트리거, 규칙 기반 검토/리포트, OpenAI 호환 클라이언트 생성."""
 import os, tempfile, json
+os.environ.setdefault("DATABASE_URL", "")  # 기본은 로컬 SQLite. Postgres 로 돌리려면 DATABASE_URL 지정
 os.environ["TEAMFAIR_DB"] = os.path.join(tempfile.mkdtemp(), "t.db")
 import db, ai
 
@@ -108,7 +109,52 @@ db.delete_team(t3["id"]); assert db.get_file(fn1) is None
 print("auth/session/claim/attachments ok ·", db.storage_label())
 print("ALL SELFTESTS PASSED (incl. auth)")
 
-g = db.upsert_oauth_user("G@Gmail.com", "구글러", "google"); assert g["provider"] == "google" and not g["has_password"]
-assert db.verify_login("g@gmail.com", "anything") is None and db.upsert_oauth_user("g@gmail.com", "x")["id"] == g["id"]
-assert db.verify_login("minsu@univ.ac.kr", "secret1")["has_password"]
-print("oauth user ok · ALL SELFTESTS PASSED (incl. google)")
+# 계정 기능: 잠금 / 비밀번호 변경 / 복구 코드 재설정 / 이름 변경 / 모든 기기 로그아웃 / 탈퇴
+u2 = db.register_user("lock@univ.ac.kr", "잠금", "secret1"); rc = u2["recovery_code"]; assert len(rc) == 9 and rc[4] == "-", rc
+for _ in range(db.LOCK_AFTER):
+    assert db.verify_login("lock@univ.ac.kr", "wrong") is None
+assert db.login_lock_remaining("lock@univ.ac.kr") > 0 and db.verify_login("lock@univ.ac.kr", "secret1") is None, "locked even with right pw"
+# 복구 코드로 재설정 → 잠금 해제 + 새 코드 + 세션 전부 종료
+tk = db.create_session("lock@univ.ac.kr")
+try:
+    db.reset_password_with_code("lock@univ.ac.kr", "WRONG-CODE", "newpass1"); raise AssertionError("bad code accepted")
+except ValueError:
+    pass
+rc2 = db.reset_password_with_code("lock@univ.ac.kr", rc.lower().replace("-", " "), "newpass1")
+assert rc2 != rc and db.user_by_session(tk) is None and db.login_lock_remaining("lock@univ.ac.kr") == 0
+assert db.verify_login("lock@univ.ac.kr", "secret1") is None and db.verify_login("lock@univ.ac.kr", "newpass1")
+try:
+    db.reset_password_with_code("lock@univ.ac.kr", rc, "x" * 8); raise AssertionError("old code still valid")
+except ValueError:
+    pass
+# 비밀번호 변경
+for bad in [("wrong", "another1"), ("newpass1", "newpass1"), ("newpass1", "123")]:
+    try:
+        db.change_password("lock@univ.ac.kr", *bad); raise AssertionError(bad)
+    except ValueError:
+        pass
+db.change_password("lock@univ.ac.kr", "newpass1", "final123"); assert db.verify_login("lock@univ.ac.kr", "final123")
+# 복구 코드 재발급
+rc3 = db.regenerate_recovery_code("lock@univ.ac.kr", "final123"); assert rc3 != rc2
+try:
+    db.regenerate_recovery_code("lock@univ.ac.kr", "nope"); raise AssertionError("regen without pw")
+except ValueError:
+    pass
+# 이름 변경 / 세션 수 / 모든 기기 로그아웃
+assert db.rename_user("lock@univ.ac.kr", "  새이름 ")["name"] == "새이름"
+t1, t2 = db.create_session("lock@univ.ac.kr"), db.create_session("lock@univ.ac.kr"); assert db.count_sessions("lock@univ.ac.kr") == 2
+assert db.delete_all_sessions("lock@univ.ac.kr") == 2 and db.user_by_session(t1) is None and db.count_sessions("lock@univ.ac.kr") == 0
+# 탈퇴: 팀원 연결 해제 + 계정/세션 삭제, 팀 기록은 유지
+t4 = db.create_team(course="c", name="n", assignment="a", start_date=__import__("datetime").date.today(), weeks=1, leader="새이름",
+                    members=["새이름", "동료"], emails={"새이름": "lock@univ.ac.kr"})
+db.create_session("lock@univ.ac.kr")
+try:
+    db.delete_user("lock@univ.ac.kr", "wrong"); raise AssertionError("delete without pw")
+except ValueError:
+    pass
+assert db.delete_user("lock@univ.ac.kr", "final123") == 1
+assert db.get_user("lock@univ.ac.kr") is None and db.count_sessions("lock@univ.ac.kr") == 0
+assert db.get_member(t4["id"], "새이름") and db.get_member(t4["id"], "새이름")["email"] is None
+assert db.register_user("lock@univ.ac.kr", "재가입", "secret1")  # 탈퇴 후 같은 이메일로 재가입 가능
+db.delete_team(t4["id"])
+print("account features ok · ALL SELFTESTS PASSED (incl. lock/reset/change/rename/delete)")

@@ -1,4 +1,5 @@
 import os, tempfile
+os.environ.setdefault("DATABASE_URL", "")  # 기본은 로컬 SQLite. Postgres 로 돌리려면 DATABASE_URL 지정
 os.environ["TEAMFAIR_DB"] = os.path.join(tempfile.mkdtemp(), "ui.db")
 from streamlit.testing.v1 import AppTest
 import db
@@ -28,7 +29,10 @@ at2.text_input(key="su_pw1").input("secret1"); at2.text_input(key="su_pw2").inpu
 [t for t in at2.text_input if "이름" in t.label][0].input("김민수")
 [b for b in at2.button if "가입하고" in b.label][0].click().run(); assert not at2.exception, at2.exception
 assert at2.session_state["user"]["email"] == "kim@univ.ac.kr", at2.session_state
-print("signup ok; token in URL:", bool(at2.query_params.get("s")))
+assert at2.session_state.get("recovery_code") and any("복구 코드" in w.value for w in at2.warning), "recovery banner missing"
+print("signup ok; token in URL:", bool(at2.query_params.get("s")), "| recovery code shown:", at2.session_state["recovery_code"])
+[b for b in at2.button if "복구 코드를 안전한" in b.label][0].click().run(); assert not at2.exception, at2.exception
+assert "recovery_code" not in at2.session_state
 # 팀 만들기 폼
 ta = {t.label: t for t in at2.text_area}; ti = {t.label: t for t in at2.text_input}
 ti["팀플 수업 이름"].input("경영정보시스템"); ti["팀 이름"].input("7조")
@@ -40,6 +44,13 @@ print("team created as leader; tabs:", [t.label for t in at2.tabs][:3])
 # 로그아웃 → 다시 로그인 화면
 [b for b in at2.button if b.label == "로그아웃"][0].click().run(); assert not at2.exception, at2.exception
 assert "user" not in at2.session_state and any("로그인" in t.label for t in at2.tabs)
+assert any("비밀번호 찾기" in t.label for t in at2.tabs), [t.label for t in at2.tabs]
+# 비밀번호 찾기: 틀린 코드 → 오류
+at2.text_input(key="rs_email").input("kim@univ.ac.kr"); at2.text_input(key="rs_code").input("AAAA-BBBB")
+at2.text_input(key="rs_pw1").input("newpass1"); at2.text_input(key="rs_pw2").input("newpass1")
+[b for b in at2.button if "비밀번호 재설정" in b.label][0].click().run(); assert not at2.exception, at2.exception
+assert any("복구 코드가 올바르지" in e.value for e in at2.error), [e.value for e in at2.error]
+print("reset with wrong code rejected")
 # 다른 계정으로 가입 후 초대 코드로 참여 → 비어 있는 이름만 선택 가능
 code = db.teams_for_email("kim@univ.ac.kr")[0]["code"]
 at2.text_input(key="su_email").input("park@univ.ac.kr"); at2.text_input(key="su_pw1").input("secret1"); at2.text_input(key="su_pw2").input("secret1")
