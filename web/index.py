@@ -759,3 +759,9 @@ def file_download(req: Request, name: str):
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "storage": db.storage_label()}
+
+
+
+@app.exception_handler(404)
+async def not_found(request: Request, exc):
+    return error_page(request, "페이지를 찾을 수 없습니다", "주소를 다시 확인해 주세요.", 404)
