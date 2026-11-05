@@ -6,7 +6,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 🌐 배포 주소 | **(배포 후 여기에 URL 기입)** |
+| 🌐 배포 주소 | **https://teamfair-ai.vercel.app** |
+| 💻 GitHub | https://github.com/indomitable1210-ops/teamfair-ai |
 | 🧪 데모 | 첫 화면 → **「데모 팀 생성하고 입장」** 클릭 → `박지훈`으로 입장하면 팝업 시연 가능 (초대 코드 `DEMO01`) |
 | 🧠 AI | 역할 설계 AI → 검토 AI → 판정 AI(+재탕·복붙 감지) → 주간 브리핑 AI → 리포트 AI (5단 Multi-AI 파이프라인, OpenAI 호환 인터페이스) |
 | 🖥️ 교내 GPU | 틸론(Tilon x KTNF) GPU VM 에서 vLLM 로 EXAONE 서빙 → `Base URL` 만 바꿔 연결 ([docs/tilon_gpu.md](docs/tilon_gpu.md)) |
@@ -63,25 +64,29 @@
 
 ## 5. 실행 / 배포
 
+**배포 주소: https://teamfair-ai.vercel.app** (Vercel · FastAPI 서버 렌더링 + Supabase Postgres)
+
+### 로컬 실행
 ```bash
 pip install -r requirements.txt
+uvicorn main:app --reload --port 8000        # 배포와 같은 웹 화면 → http://localhost:8000
+# (선택) Streamlit 버전 화면
+pip install -r requirements-streamlit.txt
 streamlit run streamlit_app.py
 ```
 
-### Streamlit Community Cloud (무료, 약 1분)
-1. 이 저장소를 GitHub 공개 저장소로 push
-2. https://share.streamlit.io → New app → 저장소/`app.py` 선택 → Deploy
-3. **Settings → Secrets** 에 아래 내용 입력 (전체 예시: [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example))
-   ```toml
-   # 영구 저장소 — 없으면 서버 재시작 시 데이터가 사라짐 (Neon: https://neon.tech 무료)
-   DATABASE_URL = "postgresql://...?sslmode=require"
-
-   # AI 키 (선택) — 하나만 있어도 AI 모드
-   GROQ_API_KEY = "gsk_..."          # 또는 GEMINI_API_KEY / OPENAI_API_KEY
-   # 틸론 GPU 서버를 쓸 때
-   TILON_API_KEY = "EMPTY"
-   TILON_BASE_URL = "http://<틸론VM-공인IP>:8000/v1"
-   ```
+### Vercel 배포 (CLI)
+```bash
+npm i -g vercel
+vercel login
+vercel link --project teamfair-ai
+vercel env add DATABASE_URL production      # Supabase Session pooler 주소 (postgresql://...:5432/postgres?sslmode=require)
+vercel env add GROQ_API_KEY production      # (선택) AI 키 — GEMINI_API_KEY / OPENAI_API_KEY 도 가능
+vercel deploy --prod
+```
+- Vercel 은 루트 `main.py` 의 ASGI `app`(FastAPI)을 자동 실행합니다. 화면 코드는 `web/index.py`, 템플릿은 `web/web_templates.py`
+- 서버리스는 디스크가 휘발성이므로 계정·팀·제출·첨부파일은 모두 Postgres(`DATABASE_URL`)에 저장
+- 마감 계산은 한국 시간(`TZ=Asia/Seoul`) 기준
 
 ### 로그인 / 저장소 설계
 - **이메일 로그인**: 비밀번호는 PBKDF2-SHA256(20만 회) 해시로 저장. 로그인 세션은 DB `sessions` 테이블 + URL 토큰(30일)으로 유지되어 새로고침·서버 재시작 후에도 로그인 상태가 남음
@@ -99,12 +104,16 @@ streamlit run streamlit_app.py
 ```bash
 python selftest.py   # DB·주차 계산·팝업 트리거·검토/판정·리포트·백업 왕복·계정/세션/이름 연결/첨부
 python uitest.py     # Streamlit AppTest 로 데모 → 보드 → 리포트 + 회원가입 → 팀 만들기 → 코드 참여까지 헤드리스 실행
+python webtest.py    # 배포용 웹 서버에 실제 HTTP 요청: 데모 팝업·제출·브리핑·리포트·가입·팀·코드 참여·잠금·재설정·탈퇴
 ```
 
 ## 7. 프로젝트 구조
 
 ```
-app.py          Streamlit UI (팀 등록·보드·제출·팝업·역할·리포트·프롬프트 기록)
+main.py         Vercel 진입점 (web.index 의 FastAPI app)
+web/index.py    배포용 웹 화면 (로그인·팀·제출·팝업·역할·리포트·프롬프트 기록·시연 도구)
+web/web_templates.py  HTML 템플릿 (Jinja2)
+streamlit_app.py      같은 기능의 Streamlit 화면 (로컬 시연용)
 ai.py           Multi-AI 파이프라인 (4개 프롬프트 + OpenAI 호환 클라이언트 + 규칙 기반 대체)
 db.py           저장소(Postgres/SQLite 공용), 계정·세션·팀원 연결, 첨부파일, 주차/마감 계산, 데모 시드, JSON 백업
 docs/tilon_gpu.md   교내 GPU 활용 방법
