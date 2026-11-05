@@ -325,6 +325,53 @@ def team_page(team: dict) -> None:
         st.markdown(f"**과제** · {esc(team['assignment'])}", unsafe_allow_html=True)
         if team.get("advice"):
             st.info("🛡️ 팀 규칙 · " + team["advice"])
+
+        # AI 주간 브리핑
+        brief_w = st.session_state.get("brief_week", cur_w)
+        bh1, bh2, bh3 = st.columns([3, 1.2, 1.3])
+        bh1.markdown("#### 🗞️ AI 주간 브리핑")
+        brief_w = bh2.selectbox("주차", list(range(1, cur_w + 1)), index=min(brief_w, cur_w) - 1, key="brief_week",
+                                format_func=lambda x: f"{x}주차", label_visibility="collapsed")
+        if bh3.button("브리핑 생성/갱신", use_container_width=True):
+            llm = get_llm()
+            rows = []
+            for m in members:
+                stt = db.week_status(team, m, brief_w, subs, exts)
+                sb = stt.get("sub")
+                rows.append({"name": m["name"], "role": m["role"], "status_label": stt["label"],
+                             "goal": m["goals"][brief_w - 1] if len(m["goals"]) >= brief_w else "",
+                             "next_goal": m["goals"][brief_w] if len(m["goals"]) > brief_w else "",
+                             "verdict": sb["verdict"] if sb else None, "score": sb["score"] if sb else None,
+                             "summary": ((sb["review"].get("review", {}) or {}).get("summary", "") if sb else ""),
+                             "text": (sb["text"] or "")[:300] if sb else ""})
+            with st.spinner("브리핑 AI 작성 중…" if llm.available else "규칙 기반 브리핑 생성 중…"):
+                try:
+                    b = ai.weekly_briefing(llm, team=team, week=brief_w, members=members, week_rows=rows)
+                except Exception as e:  # noqa: BLE001
+                    st.warning(f"AI 브리핑 실패 → 규칙 기반으로 대체: {e}")
+                    b = ai.weekly_briefing(ai.LLM(None, "", "", enabled=False), team=team, week=brief_w, members=members, week_rows=rows)
+                flush_logs(team["id"], llm)
+                db.save_briefing(team["id"], brief_w, b)
+                st.rerun()
+        b = db.get_briefing(team["id"], brief_w)
+        if b:
+            with st.container(border=True):
+                st.markdown(f"**{esc(b.get('headline', ''))}**  <span class='small'>· {brief_w}주차 · {b.get('_created_at', '')[:16]} · {'LLM' if b.get('mode') == 'llm' else '규칙 기반'}</span>", unsafe_allow_html=True)
+                bc1, bc2 = st.columns(2)
+                with bc1:
+                    if b.get("done"):
+                        st.markdown("**✅ 이번 주 해낸 일**\n" + "\n".join(f"- {x}" for x in b["done"]))
+                    if b.get("next_week_focus"):
+                        st.markdown("**🎯 다음 주 집중**\n" + "\n".join(f"- {x}" for x in b["next_week_focus"]))
+                with bc2:
+                    if b.get("risks"):
+                        st.markdown("**⚠️ 위험 신호**\n" + "\n".join(f"- {x}" for x in b["risks"]))
+                    if b.get("waiting_on"):
+                        st.markdown("**⏳ 기다리는 중**\n" + "\n".join(f"- {w_['who']} ← {w_['for_whom']}: {w_['what']}" for w_ in b["waiting_on"]))
+                if b.get("message_for_team"):
+                    st.code(b["message_for_team"], language=None)
+        else:
+            st.caption("아직 이 주차 브리핑이 없습니다. 「브리핑 생성/갱신」을 누르면 제출물과 상태를 모아 요약합니다.")
         cols = st.columns(min(4, len(members)))
         for i, m in enumerate(members):
             stt = db.week_status(team, m, cur_w, subs, exts)
@@ -385,14 +432,15 @@ def team_page(team: dict) -> None:
                             with open(os.path.join(UPLOAD_DIR, fname), "wb") as fp:
                                 fp.write(f.getbuffer())
                         llm = get_llm()
-                        with st.spinner("검토 AI → 판정 AI 가 제출물을 확인하는 중…" if llm.available else "규칙 기반 검토 중…"):
+                        prior = [{"member": s["member"], "week": s["week"], "text": s["text"] or "", "link": s["link"] or ""} for s in subs]
+                        with st.spinner("유사도 검사 → 검토 AI → 판정 AI 가 제출물을 확인하는 중…" if llm.available else "유사도 검사 + 규칙 기반 검토 중…"):
                             try:
                                 res = ai.review_submission(llm, member=me["name"], role=me["role"], goal=goal, week=w,
-                                                           text=text, link=link, filename=fname)
+                                                           text=text, link=link, filename=fname, prior=prior)
                             except Exception as e:  # noqa: BLE001
                                 st.warning(f"AI 검토 실패 → 규칙 기반으로 대체: {e}")
                                 res = ai.review_submission(ai.LLM(None, "", "", enabled=False), member=me["name"], role=me["role"],
-                                                           goal=goal, week=w, text=text, link=link, filename=fname)
+                                                           goal=goal, week=w, text=text, link=link, filename=fname, prior=prior)
                             flush_logs(team["id"], llm)
                         v, rv = res["verdict"], res["review"]
                         db.add_submission(team["id"], me["id"], w, text=text, link=link, filename=fname,
@@ -400,6 +448,11 @@ def team_page(team: dict) -> None:
                         icon = {"인정": "✅", "조건부 인정": "🟡"}.get(v.get("verdict"), "❌")
                         st.markdown(f"### {icon} 판정: **{v.get('verdict')}** · {v.get('score')}점")
                         st.write(v.get("reason", ""))
+                        for s_ in res.get("similarity", []):
+                            msg = f"🔍 유사도 검사 · **{s_['kind']}** 감지: {s_['against']} 제출과 {int(s_['ratio'] * 100)}% 동일"
+                            (st.error if s_["kind"] != "유사" else st.warning)(msg)
+                        if v.get("flags"):
+                            st.caption("판정 플래그: " + ", ".join(v["flags"]))
                         if v.get("required_fix") and v.get("required_fix") != "없음":
                             st.warning("보완 요구: " + v["required_fix"])
                         m1, m2, m3, m4 = st.columns(4)

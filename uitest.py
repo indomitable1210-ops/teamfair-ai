@@ -15,4 +15,6 @@ print("as leader ok; selectboxes:", [s.label for s in at.selectbox][:5])
 # 리포트 생성 버튼
 rep = [b for b in at.button if "리포트 생성" in b.label][0]; rep.click().run(); assert not at.exception, at.exception
 print("report metrics:", [(m.label, m.value) for m in at.metric if "%" in str(m.value)])
+bb = [b for b in at.button if "브리핑 생성" in b.label][0]; bb.click().run(); assert not at.exception, at.exception
+print("briefing rendered:", any("브리핑" in m.value for m in at.markdown))
 print("UI TEST PASSED")

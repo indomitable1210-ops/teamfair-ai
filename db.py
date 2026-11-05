@@ -42,8 +42,26 @@ def init() -> None:
             CREATE TABLE IF NOT EXISTS prompt_logs(
                 id INTEGER PRIMARY KEY, team_id INTEGER, stage TEXT, model TEXT, base_url TEXT, system_prompt TEXT,
                 user_prompt TEXT, raw_response TEXT, elapsed_sec REAL, created_at TEXT);
+            CREATE TABLE IF NOT EXISTS briefings(
+                id INTEGER PRIMARY KEY, team_id INTEGER, week INTEGER, content_json TEXT, created_at TEXT);
             """
         )
+
+
+def save_briefing(team_id: int, week: int, content: dict) -> None:
+    with conn() as c:
+        c.execute("INSERT INTO briefings(team_id,week,content_json,created_at) VALUES(?,?,?,?)",
+                  (team_id, week, json.dumps(content, ensure_ascii=False), datetime.now().isoformat(timespec="seconds")))
+
+
+def get_briefing(team_id: int, week: int) -> Optional[dict]:
+    with conn() as c:
+        r = c.execute("SELECT * FROM briefings WHERE team_id=? AND week=? ORDER BY id DESC LIMIT 1", (team_id, week)).fetchone()
+    if not r:
+        return None
+    d = json.loads(r["content_json"])
+    d["_created_at"] = r["created_at"]
+    return d
 
 
 def _now_iso() -> str:

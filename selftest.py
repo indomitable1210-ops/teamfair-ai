@@ -55,3 +55,24 @@ try:
 except Exception as e:
     print("client ok; connection error as expected:", type(e).__name__)
 print("ALL SELFTESTS PASSED")
+
+# ── 추가 기능: 유사도(재탕·복붙) 감지 + 주간 브리핑
+prior = [{"member": "이서연", "week": 2, "text": "GS25·CU·세븐일레븐 앱 평가 완료. 항목별 점수표와 스크린샷 18장, 주요 문제점 12건을 정리했습니다. 세븐일레븐 결제 단계가 가장 길었습니다(7단계).", "link": "https://a"},
+         {"member": "최유진", "week": 1, "text": "발표 스토리라인 10슬라이드 구성안과 디자인 템플릿(브랜드 컬러 3종) 초안을 만들었습니다. 피그마 링크.", "link": "https://b"}]
+copy = ai.review_submission(off, member="박지훈", role="설문", goal="설문 문항", week=2, link="", filename="",
+    text="GS25·CU·세븐일레븐 앱 평가 완료. 항목별 점수표와 스크린샷 18장, 주요 문제점 12건을 정리했습니다. 세븐일레븐 결제 단계가 가장 길었습니다(7단계).", prior=prior)
+assert copy["verdict"]["verdict"] == "미인정" and copy["similarity"][0]["kind"] == "복붙", copy["verdict"]
+rehash = ai.review_submission(off, member="최유진", role="PPT", goal="PPT", week=2, link="https://new", filename="",
+    text="발표 스토리라인 10슬라이드 구성안과 디자인 템플릿(브랜드 컬러 3종) 초안을 만들었습니다. 피그마 링크.", prior=prior)
+assert rehash["verdict"]["verdict"] == "미인정" and rehash["similarity"][0]["kind"] in ("재탕", "링크만 변경"), rehash["verdict"]
+fresh = ai.review_submission(off, member="최유진", role="PPT", goal="PPT 1~8장", week=2, link="https://c", filename="",
+    text="PPT 1~8장 제작 완료(표지·목차·문제정의·분석 프레임·3사 개요). 서연님 스크린샷 12장 반영했고 색상 가이드 통일했습니다.", prior=prior)
+assert fresh["verdict"]["verdict"] == "인정" and not fresh["similarity"], fresh["verdict"]
+print("similarity: copy ->", copy["similarity"][0]["kind"], copy["similarity"][0]["ratio"], "| rehash ->", rehash["similarity"][0]["kind"], "| fresh -> 인정")
+rows = [{"name": "김민수", "role": "총괄", "status_label": "✅ 70점", "goal": "g", "next_goal": "통합", "verdict": "인정", "score": 70, "summary": "목차 7장 확정", "text": ""},
+        {"name": "박지훈", "role": "설문", "status_label": "❌ 미제출", "goal": "g", "next_goal": "수집", "verdict": None, "score": None, "summary": "", "text": ""}]
+b = ai.weekly_briefing(off, team=team, week=1, members=[], week_rows=rows)
+assert "박지훈" in b["headline"] and b["risks"] and b["waiting_on"], b
+db.save_briefing(team["id"], 1, b); assert db.get_briefing(team["id"], 1)["headline"] == b["headline"]
+print("briefing:", b["headline"], "| waiting:", b["waiting_on"][0])
+print("ALL SELFTESTS PASSED (incl. similarity + briefing)")
