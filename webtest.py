@@ -1,5 +1,6 @@
 """Vercel 웹 서버(api/index.py) 헤드리스 테스트: 실제 HTTP 요청으로 전체 흐름 확인. 임시 SQLite 사용."""
 import os, re, sys, tempfile
+os.environ["TEAMFAIR_NO_ENV_LOCAL"] = "1"  # 공용 AI 키 예산 보호: 테스트는 규칙 기반
 os.environ["TEAMFAIR_FORCE_SQLITE"] = "1"
 os.environ["TEAMFAIR_DB"] = os.path.join(tempfile.mkdtemp(), "web.db")
 for k in ("GROQ_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY", "TILON_API_KEY"):

@@ -11,3 +11,4 @@ streamlit_app.py
 requirements-streamlit.txt
 *.bat
 *.url
+.env*

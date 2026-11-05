@@ -1,4 +1,7 @@
 import os, tempfile
+os.environ["TEAMFAIR_NO_ENV_LOCAL"] = "1"  # 공용 AI 키 예산 보호: 테스트는 규칙 기반
+for _k in ("OPENAI_API_KEY", "GROQ_API_KEY", "GEMINI_API_KEY", "TILON_API_KEY"):
+    os.environ.pop(_k, None)
 if os.environ.get("TEST_DATABASE_URL"):  # Postgres 로 테스트하려면 TEST_DATABASE_URL 지정 (운영 DB 에는 쓰지 말 것)
     os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
 else:  # 기본: secrets.toml 이 있어도 무시하고 임시 SQLite 사용

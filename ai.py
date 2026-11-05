@@ -14,6 +14,23 @@ import re
 import time
 from typing import Optional
 
+
+def load_env_local() -> None:
+    """로컬 개발용: 프로젝트 폴더의 .env.local (KEY=VALUE) 을 환경변수로 읽는다. 이미 있는 값은 덮어쓰지 않는다.
+    배포(Vercel)에서는 프로젝트 Environment Variables 가 그대로 쓰이고, .env.local 은 업로드되지 않는다."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env.local")
+    if os.environ.get("TEAMFAIR_NO_ENV_LOCAL") or not os.path.exists(path):  # 테스트는 실제 키를 쓰지 않도록
+        return
+    for line in open(path, encoding="utf-8-sig"):
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+load_env_local()
+
 PROVIDERS = {
     "틸론 GPU 서버 (vLLM/Ollama · OpenAI 호환)": {
         "base_url": "http://localhost:8000/v1",
@@ -35,7 +52,7 @@ PROVIDERS = {
     },
     "OpenAI": {
         "base_url": None,
-        "model": "gpt-4o-mini",
+        "model": os.getenv("OPENAI_MODEL", "gpt-5-mini"),
         "key_env": "OPENAI_API_KEY",
         "help": "platform.openai.com 에서 발급한 키.",
     },
@@ -186,20 +203,34 @@ class LLM:
     def available(self) -> bool:
         return self.client is not None
 
+    @property
+    def _new_api(self) -> bool:
+        """gpt-5·o 계열은 max_tokens 대신 max_completion_tokens 를 쓰고(추론 토큰 포함), temperature 를 고정값만 허용한다."""
+        m = (self.model or "").lower()
+        return m.startswith(("gpt-5", "o1", "o3", "o4"))
+
+    def _create(self, msgs: list, *, temperature: float, max_tokens: int, json_mode: bool):
+        kw = {"model": self.model, "messages": msgs}
+        if self._new_api:
+            kw["max_completion_tokens"] = max(max_tokens * 2, 2000)  # 추론 토큰 몫까지 여유
+        else:
+            kw["max_tokens"] = max_tokens
+            kw["temperature"] = temperature
+        if json_mode:
+            kw["response_format"] = {"type": "json_object"}
+        return self.client.chat.completions.create(**kw)
+
     def ping(self) -> str:
-        r = self.client.chat.completions.create(
-            model=self.model, messages=[{"role": "user", "content": "한국어로 '연결 성공'이라고만 답하세요."}], max_tokens=10)
+        r = self._create([{"role": "user", "content": "한국어로 '연결 성공'이라고만 답하세요."}], temperature=0, max_tokens=20, json_mode=False)
         return (r.choices[0].message.content or "").strip()
 
     def chat_json(self, stage: str, system: str, user: str, temperature=0.2, max_tokens=3000) -> dict:
         msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         t0 = time.time()
         try:
-            r = self.client.chat.completions.create(
-                model=self.model, messages=msgs, temperature=temperature, max_tokens=max_tokens,
-                response_format={"type": "json_object"})
+            r = self._create(msgs, temperature=temperature, max_tokens=max_tokens, json_mode=True)
         except Exception:
-            r = self.client.chat.completions.create(model=self.model, messages=msgs, temperature=temperature, max_tokens=max_tokens)
+            r = self._create(msgs, temperature=temperature, max_tokens=max_tokens, json_mode=False)
         raw = r.choices[0].message.content or ""
         self.logs.append({"stage": stage, "model": self.model, "base_url": self.base_url or "https://api.openai.com/v1",
                           "system_prompt": system, "user_prompt": user, "raw_response": raw,
