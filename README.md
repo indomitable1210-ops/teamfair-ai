@@ -65,7 +65,7 @@
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run streamlit_app.py
 ```
 
 ### Streamlit Community Cloud (무료, 약 1분)

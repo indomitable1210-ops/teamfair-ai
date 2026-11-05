@@ -1,0 +1,13 @@
+.streamlit/secrets.toml
+teamfair.db
+uploads/
+__pycache__/
+*.pyc
+.venv/
+selftest.py
+uitest.py
+webtest.py
+streamlit_app.py
+requirements-streamlit.txt
+*.bat
+*.url

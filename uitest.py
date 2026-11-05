@@ -6,7 +6,7 @@ else:  # 기본: secrets.toml 이 있어도 무시하고 임시 SQLite 사용
 os.environ["TEAMFAIR_DB"] = os.path.join(tempfile.mkdtemp(), "ui.db")
 from streamlit.testing.v1 import AppTest
 import db
-at = AppTest.from_file("app.py", default_timeout=90)
+at = AppTest.from_file("streamlit_app.py", default_timeout=90)
 at.run(); assert not at.exception, at.exception
 print("landing ok; buttons:", [b.label for b in at.button][:6])
 demo = [b for b in at.button if "데모 팀" in b.label][0]
@@ -25,7 +25,7 @@ print("briefing rendered:", any("브리핑" in m.value for m in at.markdown))
 print("UI TEST PASSED")
 
 # ── 로그인 흐름: 회원가입 → 내 팀 없음 → 팀 만들기 → 입장 → 로그아웃
-at2 = AppTest.from_file("app.py", default_timeout=90); at2.run(); assert not at2.exception, at2.exception
+at2 = AppTest.from_file("streamlit_app.py", default_timeout=90); at2.run(); assert not at2.exception, at2.exception
 assert any("로그인" in t.label for t in at2.tabs), [t.label for t in at2.tabs]
 su = at2.text_input(key="su_email"); su.input("kim@univ.ac.kr")
 at2.text_input(key="su_pw1").input("secret1"); at2.text_input(key="su_pw2").input("secret1")

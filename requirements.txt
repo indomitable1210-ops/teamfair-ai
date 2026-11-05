@@ -1,3 +1,5 @@
-streamlit>=1.42
-openai>=1.50
+fastapi>=0.115
+jinja2>=3.1
+python-multipart>=0.0.9
 psycopg[binary]>=3.2
+openai>=1.50
