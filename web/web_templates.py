@@ -428,8 +428,9 @@ SPLASH = r'''<!doctype html>
 body{font-family:"Noto Sans KR",-apple-system,"Malgun Gothic",sans-serif;background:radial-gradient(circle at 50% 30%,#ffffff 0,#eef2ff 45%,#f6f7f9 100%);color:#111827;
 display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px;text-align:center;overflow:hidden}
 .brand{position:fixed;top:22px;left:26px;font-weight:900;letter-spacing:.05em;color:#111827}
-.win{background:#fff;color:#111;border-radius:18px;width:min(460px,100%);padding:28px 26px;border:1px solid #e5e7eb;border-top:5px solid #4f46e5;box-shadow:0 24px 60px rgba(79,70,229,.18),0 4px 14px rgba(17,24,39,.06);animation:pop .55s .15s both cubic-bezier(.2,1.4,.4,1);text-align:left}
+.win{background:#fff;color:#111;border-radius:18px;width:min(460px,100%);padding:28px 26px;border:1px solid #e5e7eb;border-top:5px solid #4f46e5;box-shadow:0 24px 60px rgba(79,70,229,.18),0 4px 14px rgba(17,24,39,.06);animation:pop .55s .15s both cubic-bezier(.2,1.4,.4,1);text-align:center}
 @keyframes pop{from{transform:scale(.7);opacity:0}}
+.hero{display:block;border-radius:50%;margin:0 auto 18px;box-shadow:0 12px 28px rgba(79,70,229,.22);animation:pop .55s both cubic-bezier(.2,1.4,.4,1)}
 .warn{font-size:.88rem;color:#b91c1c;font-weight:700}
 .q{font-size:1.85rem;line-height:1.3;font-weight:900;margin:12px 0 8px}
 .sub{color:#6b7280;font-size:.95rem}
@@ -444,8 +445,8 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;min
 @media (max-width:480px){.q{font-size:1.5rem}.brand{left:16px}}
 </style></head><body>
 <div class="brand"><img src="/icon-180.png" alt="" width="30" height="30" style="border-radius:50%;vertical-align:-9px;margin-right:6px">팀플 서약</div>
+<img class="hero" src="/icon-180.png" alt="" width="96" height="96">
 <div class="win" role="dialog" aria-labelledby="q">
-  <img src="/icon-180.png" alt="" width="66" height="66" style="border-radius:50%;display:block;margin-bottom:12px">
   <div class="warn">⚠️ 이번 주 작업물이 없습니다</div>
   <div class="q" id="q">팀플에 참여하지<br>않으시겠습니까?</div>
   <div class="sub">당신의 팀원 3명이 기다리고 있습니다.</div>
