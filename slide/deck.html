@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>팀플 서약 발표자료</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+@page{size:1280px 720px;margin:0}
+*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans KR",sans-serif;color:#111827;background:#e5e7eb}
+.s{width:1280px;height:720px;background:#f6f7f9;position:relative;overflow:hidden;page-break-after:always;padding:46px 60px;display:flex;flex-direction:column}
+.s:last-child{page-break-after:auto}
+.k{color:#4f46e5;font-weight:800;font-size:18px;letter-spacing:.04em}
+h1{font-size:44px;font-weight:900;margin:6px 0 14px;line-height:1.25}h2{font-size:34px;font-weight:900;margin:6px 0 18px}
+.foot{position:absolute;left:60px;right:60px;bottom:22px;display:flex;justify-content:space-between;color:#9ca3af;font-size:14px}
+.row{display:flex;gap:26px;flex:1;min-height:0}.col{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px 22px}
+.card b{color:#111}.card p{margin:6px 0 0;color:#4b5563;font-size:18px;line-height:1.5}
+.big{font-size:22px;line-height:1.55;color:#374151}.big b{color:#111827}
+.shot{border-radius:12px;border:1px solid #e5e7eb;box-shadow:0 10px 30px rgba(17,24,39,.12);width:100%;object-fit:cover;object-position:top;background:#fff}
+.cap{font-size:15px;color:#6b7280;margin-top:6px;text-align:center}
+.pill{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 12px;font-size:15px;font-weight:700;margin:0 6px 6px 0}
+.flow{display:flex;align-items:stretch;gap:10px}.flow .st{flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;text-align:center;font-size:16px}
+.flow .st b{display:block;font-size:19px;margin-bottom:4px}.flow .ar{align-self:center;color:#4f46e5;font-weight:900;font-size:22px}
+table{border-collapse:collapse;width:100%;font-size:17px;background:#fff;border-radius:14px;overflow:hidden}
+td,th{border-bottom:1px solid #eef0f3;padding:9px 14px;text-align:left;vertical-align:top}th{background:#eef2ff;color:#3730a3;width:200px}
+.ok{color:#059669;font-weight:800}
+.cover{background:radial-gradient(circle at 50% 35%,#fff 0,#eef2ff 55%,#e0e7ff 100%);align-items:center;justify-content:center;text-align:center}
+.cover .q{background:#fff;border:1px solid #e5e7eb;border-top:6px solid #4f46e5;border-radius:18px;padding:22px 40px;font-size:30px;font-weight:900;box-shadow:0 20px 50px rgba(79,70,229,.18);margin:20px 0}
+.url{font-size:20px;color:#374151;margin-top:6px}.url b{color:#4f46e5}
+</style></head><body>
+
+<!-- 1. 표지 -->
+<section class="s cover">
+  <div style="font-size:72px">🤝</div>
+  <div class="k">트랙 1 · NEXT AI · 「내 전공 현장을 바꾸는 AI」</div>
+  <h1 style="font-size:58px;margin:8px 0 0">팀플 서약</h1>
+  <div class="big" style="font-size:26px">기여는 기록으로, 평가는 공정하게.</div>
+  <div class="q">팀플에 참여하지 않으시겠습니까?</div>
+  <div class="url">배포 <b>teamfair-ai.vercel.app</b> · GitHub <b>github.com/indomitable1210-ops/teamfair-ai</b></div>
+</section>
+
+<!-- 2. 고객 + 문제 -->
+<section class="s">
+  <div class="k">① 누가 쓰나 · ② 어떤 문제</div>
+  <h2>전공 수업 팀플의 고질병, 무임승차</h2>
+  <div class="row">
+    <div class="col">
+      <div class="card"><b style="font-size:21px">👥 팀원 (대학생)</b><p>열심히 한 만큼 인정받고 싶지만, 말할 증거가 없다</p></div>
+      <div class="card"><b style="font-size:21px">🧑‍💼 팀장</b><p>역할 배분·독촉·취합을 혼자 떠안는다</p></div>
+      <div class="card"><b style="font-size:21px">🧑‍🏫 교수님</b><p>누가 얼마나 기여했는지 알 방법이 없어 같은 점수를 준다</p></div>
+    </div>
+    <div class="col" style="flex:1.15">
+      <div class="card big" style="flex:1">
+        <div>❌ <b>"다음 주에 올릴게요"</b>가 반복되다 마감 직전 몰아치기</div>
+        <div style="margin-top:12px">❌ 기여도가 달라도 <b>같은 점수</b> → 열심히 한 사람의 동기 붕괴</div>
+        <div style="margin-top:12px">❌ "검토·취합"처럼 <b>검증 불가능한 역할</b></div>
+        <div style="margin-top:12px">❌ 노션·카톡은 <b>기록만</b> 할 뿐, 약속을 강제하지도 공정하게 평가하지도 못함</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>팀플 서약</span><span>2</span></div>
+</section>
+
+<!-- 3. 해결 흐름 -->
+<section class="s">
+  <div class="k">③ 어떻게 풀었나 — 서약 · 주간 증명 · 팝업</div>
+  <h2>매주 작업물로 기여를 증명하게 만든다</h2>
+  <div class="flow" style="margin-bottom:18px">
+    <div class="st"><b>1. 팀 등록</b>수업·팀원·과제 입력<br>→ AI가 역할과 주차별 목표 설계</div><div class="ar">→</div>
+    <div class="st"><b>2. 매주 제출</b>작업물 업로드<br>→ AI가 검토·판정</div><div class="ar">→</div>
+    <div class="st"><b>3. 미제출 팝업</b>"팀플에 참여하지<br>않으시겠습니까?"</div><div class="ar">→</div>
+    <div class="st"><b>4. 서약</b>아니요 = 하루 연장<br>예 = 학점 포기 서약서 서명</div>
+  </div>
+  <div class="row">
+    <div class="col"><img class="shot" src="shots/3_popup.png" style="height:330px"><div class="cap">마감이 지나면 들어오자마자 팝업</div></div>
+    <div class="col"><img class="shot" src="shots/4_oath.png" style="height:330px;object-position:bottom"><div class="cap">학점 포기 동의 서약서 + 자필 서명 → 이름 흑백 처리</div></div>
+  </div>
+  <div class="foot"><span>팀플 서약</span><span>3</span></div>
+</section>
+
+<!-- 4. AI 시연 -->
+<section class="s">
+  <div class="k">③ 시연 — AI가 "진짜 작업물"인지 판정</div>
+  <h2>"열심히 했어요"는 미인정, 복붙·재탕도 잡아낸다</h2>
+  <div class="row">
+    <div class="col" style="flex:1.35"><img class="shot" src="shots/5_review.png" style="height:420px"><div class="cap">실제 배포 사이트에서 제출 → 6초 만에 검토 AI·판정 AI 결과 (인정 84점, 4개 축 채점, 보완점)</div></div>
+    <div class="col">
+      <div class="card"><b>🔍 유사도 검사</b><p>지난주 재탕 · 다른 팀원 복붙 · 링크만 변경 → 자동 미인정</p></div>
+      <div class="card"><b>🗞️ AI 주간 브리핑</b><p>이번 주 해낸 일, 위험 신호, <b>누가 누구를 기다리는지</b>, 단톡 공지문</p></div>
+      <div class="card"><b>📊 AI 기여도 리포트</b><p>기여도 %, 교수 제출용 보고서, 동료평가 초안</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>팀플 서약</span><span>4</span></div>
+</section>
+
+<!-- 5. 대주제 -->
+<section class="s">
+  <div class="k">④ 「내 전공 현장을 바꾸는 AI」와 맞닿는 지점</div>
+  <h2>대학생에게 전공 현장은 곧 전공 수업, 그 중심엔 팀플</h2>
+  <div class="row">
+    <div class="col">
+      <div class="card big">전공 지식은 <b>팀 프로젝트</b>로 실습됩니다.<br>경영 사례 분석, 공학 캡스톤, 디자인 스튜디오, 간호 케이스 스터디까지 <b>모든 전공 수업</b>이 팀플로 평가됩니다.</div>
+      <div class="card big">그런데 현장의 평가는 <b>"같은 팀 = 같은 점수"</b>.<br>AI가 매주 작업물을 기록·판정해 <b>전공 수업의 평가 방식</b> 자체를 바꿉니다.</div>
+    </div>
+    <div class="col">
+      <div class="card"><b style="font-size:20px">바뀌는 현장</b>
+        <p>• 팀원: 기여가 매주 기록으로 남음</p><p>• 팀장: 역할 설계·독촉·취합을 AI가 분담</p><p>• 교수님: 서약서·기여도 리포트로 공정한 개별 평가</p></div>
+      <div class="card"><b style="font-size:20px">확장</b><p>LMS 연동 · 깃허브/노션 자동 증빙 · 기업 OJT·TF 프로젝트</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>팀플 서약</span><span>5</span></div>
+</section>
+
+<!-- 6. 기술 구현 -->
+<section class="s">
+  <div class="k">⑤ 트랙 1 — 기술 구현 · AI 기능을 어디까지 만들었나</div>
+  <h2>아이디어가 아니라, 지금 실제로 작동합니다</h2>
+  <table>
+    <tr><th>배포</th><td><span class="ok">✔</span> Vercel(서울 리전) · FastAPI 서버 렌더링 · 누구나 접속 <b>teamfair-ai.vercel.app</b></td></tr>
+    <tr><th>Multi-AI 파이프라인</th><td><span class="ok">✔</span> 역할 설계 AI → 유사도 검사 → 검토 AI → 판정 AI → 주간 브리핑 AI → 리포트 AI (5단, OpenAI gpt-5.4-mini 실가동)</td></tr>
+    <tr><th>신뢰성</th><td><span class="ok">✔</span> 모든 AI 응답 JSON 스키마 강제 · 키가 없거나 장애 시 규칙 기반으로 끝까지 작동 · 모든 AI 호출 프롬프트 자동 기록</td></tr>
+    <tr><th>계정 · 보안</th><td><span class="ok">✔</span> 이메일 가입/로그인, 계정↔팀원 1:1 연결(사칭 차단), 비밀번호 해시, 복구 코드, 5회 실패 잠금, 탈퇴</td></tr>
+    <tr><th>영구 저장</th><td><span class="ok">✔</span> Supabase Postgres · 계정·팀·제출·첨부파일·서명 이미지 모두 저장</td></tr>
+    <tr><th>서약서</th><td><span class="ok">✔</span> 캔버스 자필 서명 → 서명 이미지 저장 · 열람 · 인쇄</td></tr>
+    <tr><th>검증</th><td><span class="ok">✔</span> 자동 테스트 3종(DB·화면·실제 HTTP 흐름) 통과 · 방문자별 데모 팀 분리</td></tr>
+  </table>
+  <div class="foot"><span>팀플 서약</span><span>6</span></div>
+</section>
+
+<!-- 7. 틸론 + 마무리 -->
+<section class="s">
+  <div class="k">교내 GPU(틸론 × KTNF) 활용 방안 · 체험 방법</div>
+  <h2>학생 과제물은 학교 밖으로 나가지 않게</h2>
+  <div class="row">
+    <div class="col">
+      <div class="card big"><b>활용 방안</b><br>틸론 GPU VM에 한국어 오픈 모델 <b>EXAONE-3.5</b>를 vLLM으로 띄우고, 앱의 AI 주소만 바꾸면 5개 AI 단계가 모두 교내에서 실행됩니다.</div>
+      <div class="card"><b>이미 준비된 것</b><p>OpenAI 호환 인터페이스로 구현 → 코드 수정 없이 「AI 설정」에서 틸론 서버 주소만 입력하면 전환. 설치·연결 절차는 저장소 docs/tilon_gpu.md에 작성.</p><p style="color:#9ca3af;font-size:15px">현재 배포 사이트는 OpenAI로 동작 중</p></div>
+    </div>
+    <div class="col">
+      <div class="card big"><b>지금 바로 체험</b><br>① teamfair-ai.vercel.app 접속<br>② 「아니요, 참여할게요」<br>③ 「데모 팀 생성하고 입장」<br>→ 박지훈으로 팝업부터 서약서까지</div>
+      <div class="card" style="text-align:center;font-size:24px;font-weight:900;color:#4f46e5">기여는 기록으로, 평가는 공정하게.</div>
+    </div>
+  </div>
+  <div class="foot"><span>팀플 서약</span><span>7</span></div>
+</section>
+</body></html>
