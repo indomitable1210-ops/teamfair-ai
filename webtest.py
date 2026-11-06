@@ -44,7 +44,7 @@ import base64; sig = "data:image/png;base64," + base64.b64encode(b"PNGDATA" + b"
 ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": "", "agree": "1", "week": "1"}), "자필 서명을 해 주세요")
 ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "김민수", "signature": sig, "agree": "1", "week": "1"}), "본인 이름(박지훈)")
 ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": sig, "week": "1"}), "동의에 체크")
-r = c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": sig, "agree": "1", "week": "1"}); ok(r, "F를 받는데 동의하셨습니다", "서명한 서약서 보기")
+r = c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": sig, "agree": "1", "week": "1"}); ok(r, "서약서에 서명이 완료되었습니다", "서명한 서약서 보기")
 pj = db.get_member(db.get_team("DEMO01")["id"], "박지훈")
 ok(c.get(f"/t/DEMO01/oath/{pj['id']}"), "학점 포기 동의 서약서", "1주차", "박지훈", sig[:60])
 ok(c.get("/t/DEMO01?snooze=1"), "학점 포기 서약서 보기")

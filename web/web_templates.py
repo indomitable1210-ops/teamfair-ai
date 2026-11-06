@@ -265,7 +265,7 @@ TEAM = r"""{% extends "base.html" %}{% block title %}{{ team.course }} · {{ tea
   document.getElementById('oathform').addEventListener('submit',e=>{if(!dirty){e.preventDefault();alert('서명란에 자필 서명을 해 주세요.');return;}document.getElementById('sigdata').value=c.toDataURL('image/png');});})();
   </script>
 {% else %}
-  <div class="peace">F를 받는데 동의하셨습니다.</div>
+  <div class="peace">서약서에 서명이 완료되었습니다.</div>
   <div class="member-card f"><div class="nm">{{ me.name }}</div><div class="oath">“F를 받겠습니다. 교수님께 따로 말씀드리는 것에 동의합니다.”</div></div>
   <div class="row" style="margin-top:12px"><a class="btn gray" href="{{ base }}/oath/{{ me.id }}">서명한 서약서 보기</a><a class="btn" href="{{ base }}">확인</a></div>
 {% endif %}

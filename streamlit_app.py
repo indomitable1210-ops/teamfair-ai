@@ -553,7 +553,7 @@ def peace_dialog(team: dict, me: dict, alert: dict) -> None:
             st.rerun(scope="fragment")
 
     else:  # done
-        st.markdown("<div class='peace'>F를 받는데 동의하셨습니다.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='peace'>서약서에 서명이 완료되었습니다.</div>", unsafe_allow_html=True)
         st.markdown(
             f"<div class='member-card f'><div class='nm'>{esc(me['name'])}</div>"
             f"<div class='oath'>“F를 받겠습니다. 교수님께 따로 말씀드리는 것에 동의합니다.”</div></div>",
