@@ -16,9 +16,6 @@ r = c.get("/"); ok(r, "팀플에 참여하지", "아니요, 참여할게요", 'h
 r = c.get("/start"); ok(r, "로그인", "회원가입", "비밀번호 찾기", "데모 팀")
 ok(c.get("/"), "아니요, 참여할게요")  # 로그인 전에는 첫 주소로 올 때마다 시작화면
 ok(c.get("/intro"), "아니요, 참여할게요")
-for pth, mime in (("/icon-32.png", "image/png"), ("/icon-180.png", "image/png"), ("/favicon.ico", "image/x-icon")):
-    rr = c.get(pth); assert rr.status_code == 200 and rr.headers["content-type"].startswith(mime) and len(rr.content) > 500, pth
-ok(c.get("/intro"), 'href="/icon-32.png"', 'src="/icon-180.png"')
 print("splash ok")
 assert c.get("/healthz").json()["storage"].startswith("SQLite")
 

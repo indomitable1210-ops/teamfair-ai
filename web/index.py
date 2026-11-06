@@ -28,8 +28,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response  # noqa: 
 import ai  # noqa: E402
 import db  # noqa: E402
 from web_templates import env  # noqa: E402
-import icon_data  # noqa: E402
-import base64  # noqa: E402
 
 app = FastAPI(title="팀플 서약", docs_url=None, redoc_url=None, openapi_url=None)
 MAX_UPLOAD = 4 * 1024 * 1024  # Vercel 요청 본문 한도(4.5MB) 안쪽
@@ -791,20 +789,6 @@ def file_download(req: Request, name: str):
     original = name.split("_", 3)[-1]
     return Response(data, media_type="application/octet-stream",
                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{urllib.parse.quote(original)}"})
-
-
-_ICONS = {"/icon-32.png": ("ICON_32", "image/png"), "/icon-180.png": ("ICON_180", "image/png"),
-          "/favicon.ico": ("ICON_ICO", "image/x-icon"), "/apple-touch-icon.png": ("ICON_180", "image/png")}
-
-
-def _icon_route(path: str):
-    attr, mime = _ICONS[path]
-    data = base64.b64decode(getattr(icon_data, attr))
-    return lambda: Response(data, media_type=mime, headers={"Cache-Control": "public, max-age=86400"})
-
-
-for _p in _ICONS:
-    app.add_api_route(_p, _icon_route(_p), methods=["GET"], include_in_schema=False)
 
 
 @app.get("/healthz")
