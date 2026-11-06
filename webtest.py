@@ -39,7 +39,17 @@ assert c.get("/t/DEMO01/export.json").json()["team"]["code"] == "DEMO01"
 # 다른 팀원으로 전환 → F 동의 흐름
 c.post("/t/DEMO01/time", data={"delta": "0"})
 r = c.post("/t/DEMO01/as", data={"name": "박지훈"})
-r = c.post("/t/DEMO01/peace/agree"); ok(r, "F를 받는데 동의하셨습니다")
+ok(c.get("/t/DEMO01?pd=sign"), "학점 포기 동의 서약서", "F 학점을 받는 것에 동의", "sigpad")
+import base64; sig = "data:image/png;base64," + base64.b64encode(b"PNGDATA" + b"0" * 400).decode()
+ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": "", "agree": "1", "week": "1"}), "자필 서명을 해 주세요")
+ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "김민수", "signature": sig, "agree": "1", "week": "1"}), "본인 이름(박지훈)")
+ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": sig, "week": "1"}), "동의에 체크")
+r = c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": sig, "agree": "1", "week": "1"}); ok(r, "F를 받는데 동의하셨습니다", "서명한 서약서 보기")
+pj = db.get_member(db.get_team("DEMO01")["id"], "박지훈")
+ok(c.get(f"/t/DEMO01/oath/{pj['id']}"), "학점 포기 동의 서약서", "1주차", "박지훈", sig[:60])
+ok(c.get("/t/DEMO01?snooze=1"), "학점 포기 서약서 보기")
+assert c.get(f"/t/DEMO01/oath/{db.get_member(pj['team_id'], '김민수')['id']}").status_code == 404
+print("oath sign flow ok")
 ok(c.get("/t/DEMO01?tab=upload"), "F 동의 상태에서는 제출할 수 없습니다")
 print("demo flow ok")
 

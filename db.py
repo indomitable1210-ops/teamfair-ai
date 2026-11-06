@@ -148,7 +148,8 @@ _SCHEMA = [
         advice TEXT DEFAULT '', milestones_json TEXT DEFAULT '[]', created_at TEXT)""",
     """CREATE TABLE IF NOT EXISTS members(
         id {PK}, team_id INTEGER, name TEXT, role TEXT DEFAULT '', role_desc TEXT DEFAULT '',
-        goals_json TEXT DEFAULT '[]', status TEXT DEFAULT 'active', f_agreed_at TEXT, email TEXT)""",
+        goals_json TEXT DEFAULT '[]', status TEXT DEFAULT 'active', f_agreed_at TEXT, email TEXT,
+        f_signature TEXT, f_signed_name TEXT, f_week INTEGER)""",
     """CREATE TABLE IF NOT EXISTS submissions(
         id {PK}, team_id INTEGER, member_id INTEGER, week INTEGER, text TEXT, link TEXT,
         filename TEXT, score INTEGER, verdict TEXT, review_json TEXT, created_at TEXT)""",
@@ -182,7 +183,8 @@ def init() -> None:
         for stmt in _SCHEMA:
             c.execute(stmt.replace("{PK}", pk).replace("{BLOB}", blob))
         # 구버전 DB 마이그레이션 (없는 컬럼만 추가)
-        for table, col, typ in (("members", "email", "TEXT"), ("users", "recovery_hash", "TEXT"), ("users", "recovery_salt", "TEXT"),
+        for table, col, typ in (("members", "email", "TEXT"), ("members", "f_signature", "TEXT"), ("members", "f_signed_name", "TEXT"),
+                                ("members", "f_week", "INTEGER"), ("users", "recovery_hash", "TEXT"), ("users", "recovery_salt", "TEXT"),
                                 ("users", "failed_count", "INTEGER DEFAULT 0"), ("users", "locked_until", "TEXT")):
             if pg:
                 c.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {typ}")
@@ -518,8 +520,20 @@ def update_member(member_id: int, **fields) -> None:
         c.execute(f"UPDATE members SET {cols} WHERE id=?", (*fields.values(), member_id))
 
 
-def mark_f(member_id: int, agreed: bool = True) -> None:
-    update_member(member_id, status="F" if agreed else "active", f_agreed_at=_now_iso() if agreed else None)
+MAX_SIGNATURE_CHARS = 400_000  # 서명 PNG(data URL) 상한
+
+
+def mark_f(member_id: int, agreed: bool = True, *, signature: Optional[str] = None, signed_name: Optional[str] = None,
+           week: Optional[int] = None) -> None:
+    """F 동의(학점 포기 서약). agreed=False 면 팀장이 되돌린 것으로 서명도 함께 지운다."""
+    if agreed:
+        update_member(member_id, status="F", f_agreed_at=_now_iso(), f_signature=signature, f_signed_name=signed_name, f_week=week)
+    else:
+        update_member(member_id, status="active", f_agreed_at=None, f_signature=None, f_signed_name=None, f_week=None)
+
+
+def valid_signature(sig: str) -> bool:
+    return bool(sig) and sig.startswith("data:image/png;base64,") and 200 < len(sig) <= MAX_SIGNATURE_CHARS
 
 
 def save_plan(team_id: int, plan: dict) -> None:
@@ -713,9 +727,9 @@ def import_team(payload: str) -> dict:
              t.get("sim_offset_days", 0), t.get("advice", ""), t.get("milestones_json", "[]"), t.get("created_at") or _now_iso()))
         idmap = {}
         for m in d["members"]:
-            mid = c.insert("INSERT INTO members(team_id,name,role,role_desc,goals_json,status,f_agreed_at,email) VALUES(?,?,?,?,?,?,?,?)",
+            mid = c.insert("INSERT INTO members(team_id,name,role,role_desc,goals_json,status,f_agreed_at,email,f_signature,f_signed_name,f_week) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                            (tid, m["name"], m.get("role", ""), m.get("role_desc", ""), m.get("goals_json", "[]"), m.get("status", "active"),
-                            m.get("f_agreed_at"), _norm_email(m.get("email") or "") or None))
+                            m.get("f_agreed_at"), _norm_email(m.get("email") or "") or None, m.get("f_signature"), m.get("f_signed_name"), m.get("f_week")))
             idmap[m["id"]] = mid
         for s in d.get("submissions", []):
             c.execute("INSERT INTO submissions(team_id,member_id,week,text,link,filename,score,verdict,review_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",

@@ -5,6 +5,7 @@ BASE = r"""<!doctype html>
 <html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}팀플 서약{% endblock %}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>">
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#111827;--sub:#6b7280;--line:#e5e7eb;--brand:#4f46e5;--brand-ink:#fff;
@@ -48,6 +49,17 @@ pre.code{background:#f3f4f6;border-radius:8px;padding:10px;white-space:pre-wrap;
 .modal{background:#fff;border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
 .peace{font-size:1.5rem;font-weight:800;text-align:center;margin:14px 0 18px}.modal .row>*{flex:1}
 .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.8rem;background:#f3f4f6}
+.modal.wide{max-width:680px;max-height:92vh;overflow:auto}
+.oathdoc{background:#fffdf7;border:1px solid #d6cdb8;border-radius:6px;padding:22px 24px;margin:6px 0;color:#1f1a14;font-family:"Nanum Myeongjo","Batang",serif}
+.od-title{text-align:center;font-size:1.5rem;font-weight:800;letter-spacing:.3em;margin-bottom:14px;border-bottom:2px double #1f1a14;padding-bottom:10px}
+.od-meta{width:100%;border-collapse:collapse;font-size:.92rem;margin-bottom:10px}.od-meta th{background:#f3eee2;width:64px;font-weight:700}
+.od-meta th,.od-meta td{border:1px solid #d6cdb8;padding:6px 8px;text-align:left}
+.od-clauses{padding-left:1.3em;line-height:1.8;font-size:.95rem}.od-pledge{text-align:center;margin:12px 0 4px;font-weight:700}
+.od-sign{display:flex;gap:18px;align-items:flex-end;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+.od-sigbox{position:relative;width:220px;height:90px;border-bottom:1.5px solid #1f1a14}.od-sigbox img{width:100%;height:100%;object-fit:contain}
+.od-seal{position:absolute;right:-4px;bottom:4px;font-size:.8rem;color:#8a7f6c}
+.sigpad{width:100%;height:150px;border:1.5px dashed #9ca3af;border-radius:10px;background:#fff;touch-action:none;cursor:crosshair;display:block}
+@media print{.top,footer,.noprint{display:none!important}main{padding:0}.oathdoc{border:0}}
 @media (max-width:600px){h1{font-size:1.35rem}.top{padding:10px 16px}}
 </style></head><body>
 <header class="top"><a class="brand" href="/">🤝 팀플 서약</a><nav>
@@ -214,7 +226,7 @@ SETTINGS = r"""{% extends "base.html" %}{% block title %}AI 설정 · 팀플 서
 {% endblock %}"""
 
 TEAM = r"""{% extends "base.html" %}{% block title %}{{ team.course }} · {{ team.name }} · 팀플 서약{% endblock %}{% block body %}
-{% if modal %}<div class="overlay"><div class="modal">
+{% if modal %}<div class="overlay"><div class="modal {{ 'wide' if modal.step == 'sign' }}">
 {% if modal.step == 'ask' %}
   <h3 style="margin-top:0">⚠️ 이번 주 작업물이 없습니다</h3>
   <p><b>{{ me.name }}</b> 님, <b>{{ modal.week }}주차</b> 작업물을 마감({{ modal.deadline }})까지 올리지 않으셨습니다.</p>
@@ -228,12 +240,34 @@ TEAM = r"""{% extends "base.html" %}{% block title %}{{ team.course }} · {{ tea
 {% elif modal.step == 'confirm' %}
   <div class="peace">혼자 F를 받는 것에 동의한다는 건가요?</div>
   <p class="small">'예'를 누르면 되돌릴 수 없으며, 팀 보드에서 이름이 흑백으로 표시되고 교수님께 별도 보고됩니다.</p>
-  <div class="row"><form method="post" action="{{ base }}/peace/agree" style="flex:1"><button class="btn danger" style="width:100%">예</button></form>
+  <div class="row"><a class="btn danger" href="{{ base }}?pd=sign">예</a>
   <a class="btn gray" href="{{ base }}">뒤로가기</a></div>
+{% elif modal.step == 'sign' %}
+  {% from "oathdoc.html" import oath_doc %}
+  <p class="small" style="margin:0">마지막 단계입니다. 아래 서약서를 읽고 서명하면 F 처리됩니다.</p>
+  {{ oath_doc(team, me, modal.week) }}
+  <form method="post" action="{{ base }}/peace/agree" id="oathform">
+    <input type="hidden" name="week" value="{{ modal.week }}"><input type="hidden" name="signature" id="sigdata">
+    <label>서약자 이름 (본인 이름을 직접 입력)</label><input type="text" name="signed_name" placeholder="{{ me.name }}" autocomplete="off" required>
+    <label>자필 서명 <button type="button" class="link" id="sigclear" style="font-weight:400;margin-left:8px">지우기</button></label>
+    <canvas class="sigpad" id="sigpad"></canvas>
+    <label><input type="checkbox" name="agree" value="1" required> 위 서약 내용에 동의하며, 학점 포기에 서명합니다.</label>
+    <div class="row" style="margin-top:12px"><button class="btn danger" style="flex:1">서명하고 제출</button><a class="btn gray" href="{{ base }}?pd=confirm">뒤로가기</a></div>
+  </form>
+  <script>
+  (function(){const c=document.getElementById('sigpad'),x=c.getContext('2d');let drawing=false,dirty=false;
+  function fit(){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;x.scale(d,d);x.lineWidth=2.4;x.lineCap='round';x.lineJoin='round';x.strokeStyle='#111';}
+  fit();function p(e){const r=c.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
+  c.addEventListener('pointerdown',e=>{drawing=true;dirty=true;c.setPointerCapture(e.pointerId);const [a,b]=p(e);x.beginPath();x.moveTo(a,b);x.lineTo(a+.1,b+.1);x.stroke();});
+  c.addEventListener('pointermove',e=>{if(!drawing)return;const [a,b]=p(e);x.lineTo(a,b);x.stroke();});
+  ['pointerup','pointercancel','pointerleave'].forEach(t=>c.addEventListener(t,()=>{drawing=false;}));
+  document.getElementById('sigclear').onclick=()=>{x.clearRect(0,0,c.width,c.height);dirty=false;};
+  document.getElementById('oathform').addEventListener('submit',e=>{if(!dirty){e.preventDefault();alert('서명란에 자필 서명을 해 주세요.');return;}document.getElementById('sigdata').value=c.toDataURL('image/png');});})();
+  </script>
 {% else %}
   <div class="peace">F를 받는데 동의하셨습니다.</div>
   <div class="member-card f"><div class="nm">{{ me.name }}</div><div class="oath">“F를 받겠습니다. 교수님께 따로 말씀드리는 것에 동의합니다.”</div></div>
-  <a class="btn full" href="{{ base }}">확인</a>
+  <div class="row" style="margin-top:12px"><a class="btn gray" href="{{ base }}/oath/{{ me.id }}">서명한 서약서 보기</a><a class="btn" href="{{ base }}">확인</a></div>
 {% endif %}
 </div></div>{% endif %}
 
@@ -273,7 +307,8 @@ TEAM = r"""{% extends "base.html" %}{% block title %}{{ team.course }} · {{ tea
 <div class="cols3">{% for m in members %}
 <div class="member-card {{ 'f' if m.status == 'F' }}"><div class="nm">{{ m.name }}{% if m.name == team.leader %}<span class="tag">팀장</span>{% endif %}</div>
 <div class="rl">{{ m.role or '역할 미정' }} · {{ m.role_desc }}</div><div class="small">{{ cur_w }}주차: {{ m.cur_label }}</div>
-{% if m.status == 'F' %}<div class="oath">“F를 받겠습니다. 교수님께 따로 말씀드리는 것에 동의합니다.”</div>{% endif %}</div>{% endfor %}</div>
+{% if m.status == 'F' %}<div class="oath">“F를 받겠습니다. 교수님께 따로 말씀드리는 것에 동의합니다.”</div>
+<a class="small" style="filter:none" href="{{ base }}/oath/{{ m.id }}">📜 학점 포기 서약서 보기</a>{% endif %}</div>{% endfor %}</div>
 <h3>주차별 제출 현황</h3>
 <div class="tbl-wrap"><table class="grid"><tr><th>팀원</th>{% for w in weeks %}<th>{{ w.n }}주차<br><span class="small">~{{ w.deadline }}</span></th>{% endfor %}</tr>
 {% for m in members %}<tr class="{{ 'f' if m.status == 'F' }}"><td>{{ m.name }}</td>{% for l in m.labels %}<td>{{ l }}</td>{% endfor %}</tr>{% endfor %}</table></div>
@@ -353,10 +388,38 @@ TEAM = r"""{% extends "base.html" %}{% block title %}{{ team.course }} · {{ tea
 {% endif %}
 {% endblock %}"""
 
+OATH_DOC = r'''{% macro oath_doc(team, m, week, signed=False, signature=None, signed_name='', signed_at='') %}
+<div class="oathdoc">
+  <div class="od-title">학점 포기 동의 서약서</div>
+  <table class="od-meta">
+    <tr><th>수업</th><td>{{ team.course }}</td><th>팀</th><td>{{ team.name }}</td></tr>
+    <tr><th>서약자</th><td>{{ m.name }}</td><th>역할</th><td>{{ m.role or '-' }}</td></tr>
+    <tr><th>과제</th><td colspan="3">{{ team.assignment }}</td></tr>
+  </table>
+  <ol class="od-clauses">
+    <li>본인은 {% if week %}{{ week }}주차{% else %}정해진 주차의{% endif %} 작업물을 마감까지 제출하지 않았으며, 이 팀 프로젝트에 더 이상 참여하지 않겠습니다.</li>
+    <li>본인은 이 과제의 학점을 포기하고, <b>F 학점을 받는 것에 동의</b>합니다.</li>
+    <li>이 사실을 팀이 <b>교수님께 따로 보고하는 것에 동의</b>합니다.</li>
+    <li>본인의 이름은 팀 보드에서 흑백으로 표시되며, 서약 후에는 본인이 취소할 수 없습니다. (팀장만 되돌릴 수 있습니다)</li>
+  </ol>
+  <p class="od-pledge">위 내용을 충분히 읽고 이해하였으며, 본인의 자유로운 의사로 서약합니다.</p>
+  {% if signed %}
+  <div class="od-sign"><div><span class="small">서약일</span><br><b>{{ signed_at }}</b></div>
+    <div><span class="small">서약자</span><br><b>{{ signed_name }}</b></div>
+    <div class="od-sigbox">{% if signature %}<img src="{{ signature }}" alt="서명">{% endif %}<span class="od-seal">(서명)</span></div></div>
+  {% endif %}
+</div>
+{% endmacro %}'''
+
+OATH_PAGE = r'''{% extends "base.html" %}{% from "oathdoc.html" import oath_doc %}{% block title %}학점 포기 동의 서약서 · {{ m.name }}{% endblock %}{% block body %}
+<div class="row noprint" style="justify-content:space-between"><a href="{{ base }}">← 팀 보드로</a><button class="btn gray" onclick="window.print()">인쇄 / PDF 저장</button></div>
+{{ oath_doc(team, m, m.f_week, True, m.f_signature, m.f_signed_name or m.name, (m.f_agreed_at or '')[:16]|replace('T', ' ')) }}
+{% endblock %}'''
+
 ERROR = r"""{% extends "base.html" %}{% block body %}<h1>{{ title }}</h1><div class="alert error">{{ message }}</div><a href="/">← 처음으로</a>{% endblock %}"""
 
 env = Environment(
     loader=DictLoader({"base.html": BASE, "auth.html": AUTH, "recovery.html": RECOVERY, "home.html": HOME, "join.html": JOIN,
-                       "pick.html": PICK, "account.html": ACCOUNT, "settings.html": SETTINGS, "team.html": TEAM, "error.html": ERROR}),
+                       "pick.html": PICK, "oathdoc.html": OATH_DOC, "oath.html": OATH_PAGE, "account.html": ACCOUNT, "settings.html": SETTINGS, "team.html": TEAM, "error.html": ERROR}),
     autoescape=select_autoescape(default=True),
 )

@@ -522,11 +522,34 @@ def peace_dialog(team: dict, me: dict, alert: dict) -> None:
         st.caption("'예'를 누르면 되돌릴 수 없으며, 팀 보드에서 이름이 흑백으로 표시되고 교수님께 별도 보고됩니다.")
         c1, c2 = st.columns(2)
         if c1.button("예", use_container_width=True, key="pd_yes2"):
-            db.mark_f(me["id"], True)
-            st.session_state.pd_step = "done"
+            st.session_state.pd_step = "sign"
             st.rerun(scope="fragment")
         if c2.button("뒤로가기", use_container_width=True, key="pd_back"):
             st.session_state.pd_step = "ask"
+            st.rerun(scope="fragment")
+
+    elif step == "sign":
+        st.markdown("### 📜 학점 포기 동의 서약서")
+        st.markdown(
+            f"**수업** {esc(team['course'])} · **팀** {esc(team['name'])} · **서약자** {esc(me['name'])}  \n"
+            f"1. 본인은 {week}주차 작업물을 마감까지 제출하지 않았으며, 이 팀 프로젝트에 더 이상 참여하지 않겠습니다.  \n"
+            "2. 본인은 이 과제의 학점을 포기하고, **F 학점을 받는 것에 동의**합니다.  \n"
+            "3. 이 사실을 팀이 **교수님께 따로 보고하는 것에 동의**합니다.  \n"
+            "4. 서약 후에는 본인이 취소할 수 없으며, 팀장만 되돌릴 수 있습니다.", unsafe_allow_html=True)
+        signed = st.text_input("서약자 이름 (본인 이름을 직접 입력해 서명)", key="pd_sign_name")
+        agree = st.checkbox("위 서약 내용에 동의하며, 학점 포기에 서명합니다.", key="pd_sign_agree")
+        c1, c2 = st.columns(2)
+        if c1.button("서명하고 제출", use_container_width=True, key="pd_sign_ok"):
+            if signed.strip() != me["name"]:
+                st.error(f"이름 칸에 본인 이름({me['name']})을 정확히 적어 주세요.")
+            elif not agree:
+                st.error("서약 내용 동의에 체크해 주세요.")
+            else:
+                db.mark_f(me["id"], True, signed_name=signed.strip(), week=week)
+                st.session_state.pd_step = "done"
+                st.rerun(scope="fragment")
+        if c2.button("뒤로가기", use_container_width=True, key="pd_sign_back"):
+            st.session_state.pd_step = "confirm"
             st.rerun(scope="fragment")
 
     else:  # done

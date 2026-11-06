@@ -485,7 +485,7 @@ def team_page(req: Request, team: dict, me: dict, tab: str = "board", report: di
         if alert and not snooze:
             w = alert["week"]
             goals = me["goals"] or []
-            modal = {"step": "confirm" if pd == "confirm" else "ask", "week": w,
+            modal = {"step": pd if pd in ("confirm", "sign") else "ask", "week": w,
                      "deadline": f"{db.week_deadline(team, w):%m/%d %H:%M}",
                      "goal": goals[w - 1] if len(goals) >= w else "-", "ext_used": alert.get("ext_used")}
 
@@ -544,12 +544,32 @@ def peace_no(req: Request, code: str):
 
 
 @app.post("/t/{code}/peace/agree")
-def peace_agree(req: Request, code: str):
+def peace_agree(req: Request, code: str, signed_name: str = Form(""), signature: str = Form(""), agree: str = Form(""), week: int = Form(0)):
+    """학점 포기 동의 서약서 제출: 본인 이름 입력 + 자필 서명 + 동의 체크가 모두 있어야 F 처리."""
     team, me, bad = team_access(req, code)
     if bad:
         return bad
-    db.mark_f(me["id"], True)
+    back = f"{base_url(team)}?pd=sign"
+    if signed_name.strip() != me["name"]:
+        return go(req, back, f"서약서의 이름 칸에 본인 이름({me['name']})을 정확히 적어 주세요.", "error")
+    if not db.valid_signature(signature):
+        return go(req, back, "서명란에 자필 서명을 해 주세요.", "error")
+    if not agree:
+        return go(req, back, "서약 내용 동의에 체크해 주세요.", "error")
+    db.mark_f(me["id"], True, signature=signature, signed_name=signed_name.strip(), week=week or None)
     return go(req, f"{base_url(team)}?pd=done")
+
+
+@app.get("/t/{code}/oath/{member_id}", response_class=HTMLResponse)
+def oath_view(req: Request, code: str, member_id: int):
+    """서명된 학점 포기 동의 서약서 (팀원 누구나 열람·인쇄)."""
+    team, me, bad = team_access(req, code)
+    if bad:
+        return bad
+    m = next((x for x in db.list_members(team["id"]) if x["id"] == member_id), None)
+    if not m or m["status"] != "F":
+        return error_page(req, "서약서 없음", "이 팀원은 학점 포기 서약을 하지 않았습니다.", 404)
+    return render(req, "oath.html", team=team, m=m, base=base_url(team))
 
 
 @app.post("/t/{code}/briefing")
