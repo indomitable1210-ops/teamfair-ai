@@ -736,7 +736,7 @@ DEMO_CODE = "DEMO01"
 
 def seed_demo(review_fn) -> dict:
     """심사용 데모 팀. 4명 · 3주 과제, 시작일은 15일 전 → 현재 3주차, 1·2주차 마감 경과.
-    박지훈은 한 번도 제출하지 않아 로그인 시 '평화를 부수겠습니까?' 팝업이 뜬다."""
+    박지훈은 한 번도 제출하지 않아 로그인 시 '팀플에 참여하지 않으시겠습니까?' 팝업이 뜬다."""
     old = get_team(DEMO_CODE)
     if old:
         delete_team(old["id"])

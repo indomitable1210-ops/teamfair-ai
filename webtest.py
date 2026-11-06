@@ -16,7 +16,7 @@ r = c.get("/"); assert r.status_code == 200; ok(r, "로그인", "회원가입", 
 assert c.get("/healthz").json()["storage"].startswith("SQLite")
 
 # 데모: 로그인 없이 → 박지훈 팝업
-r = c.post("/demo"); assert r.status_code == 200, r.status_code; ok(r, "팀의 평화를 부수겠습니까?", "박지훈")
+r = c.post("/demo"); assert r.status_code == 200, r.status_code; ok(r, "팀플에 참여하지 않으시겠습니까?", "박지훈")
 r = c.get("/t/DEMO01?pd=confirm"); ok(r, "혼자 F를 받는 것에 동의한다는 건가요?")
 r = c.post("/t/DEMO01/peace/no"); ok(r, "하루 연장")          # 1주차 연장 → 2주차 팝업
 ok(c.get("/t/DEMO01"), "2주차</b> 작업물")

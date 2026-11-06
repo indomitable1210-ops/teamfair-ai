@@ -1,7 +1,7 @@
 """팀플 서약 (TeamFair) — 무임승차 방지 팀 프로젝트 플랫폼
 
 수업·팀·팀원 등록 → AI 역할 설계 → 매주 작업물 업로드(AI 검토·판정)
-→ 미제출자에게 '평화를 부수겠습니까?' 팝업 → 하루 연장 또는 F 동의(이름 흑백 처리)
+→ 미제출자에게 '팀플에 참여하지 않으시겠습니까?' 팝업 → 하루 연장 또는 F 동의(이름 흑백 처리)
 → AI 기여도 리포트
 """
 from __future__ import annotations
@@ -497,7 +497,7 @@ def peace_dialog(team: dict, me: dict, alert: dict) -> None:
     if step == "ask":
         st.markdown(f"**{me['name']}** 님, **{week}주차** 작업물을 마감({db.week_deadline(team, week):%m/%d %H:%M})까지 올리지 않으셨습니다.")
         st.markdown(f"<div class='small'>이번 주 목표: {esc((me['goals'] or ['-'] * week)[week - 1])}</div>", unsafe_allow_html=True)
-        st.markdown("<div class='peace'>팀의 평화를 부수겠습니까?</div>", unsafe_allow_html=True)
+        st.markdown("<div class='peace'>팀플에 참여하지 않으시겠습니까?</div>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         if c1.button("예", use_container_width=True, key="pd_yes"):
             st.session_state.pd_step = "confirm"

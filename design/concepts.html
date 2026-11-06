@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>팀플 서약 디자인 시안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700;900&family=Jua&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans KR",sans-serif;background:#e9eaee;color:#111}
+.picker{position:sticky;top:0;z-index:50;background:#111827;color:#fff;padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.picker b{margin-right:8px}.picker button{border:1px solid #374151;background:#1f2937;color:#e5e7eb;border-radius:999px;padding:7px 14px;font:inherit;cursor:pointer}
+.picker button.on{background:#fff;color:#111;border-color:#fff;font-weight:700}
+.note{max-width:1100px;margin:16px auto 0;padding:0 16px;font-size:.92rem;color:#374151}
+.note h2{margin:.2em 0;font-size:1.15rem}.note p{margin:.3em 0}
+.stage{max-width:1100px;margin:12px auto 40px;padding:0 16px}
+.concept{display:none;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.12)}.concept.on{display:block}
+.wrap{padding:22px}.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+table{width:100%;border-collapse:collapse}th,td{padding:8px 10px;text-align:center;white-space:nowrap}td:first-child,th:first-child{text-align:left}
+.tw{overflow-x:auto}.modal-demo{display:flex;justify-content:center;padding:26px 16px 30px}
+.btnrow{display:flex;gap:10px;margin-top:14px}.btnrow>*{flex:1;text-align:center;padding:11px;font-weight:700;cursor:default}
+
+/* ── A. 서약서 ── */
+.A{background:#f5efe2;color:#2b2118;font-family:"Noto Sans KR",sans-serif}
+.A .top{background:#2b2118;color:#f5efe2;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
+.A .logo{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:1.25rem;letter-spacing:.05em}
+.A h1{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:1.9rem;margin:6px 0 2px;letter-spacing:.02em}
+.A .sub{color:#7a6a58;font-size:.9rem}
+.A .clause{border-top:2px solid #2b2118;border-bottom:1px solid #2b2118;padding:8px 0;margin:14px 0;font-family:"Nanum Myeongjo",serif}
+.A .metric{background:#fffaf0;border:1px solid #d8c9ad;padding:12px}.A .metric .k{font-size:.8rem;color:#7a6a58}.A .metric .v{font-family:"Nanum Myeongjo",serif;font-size:1.5rem;font-weight:800}
+.A .card{background:#fffaf0;border:1px solid #d8c9ad;padding:14px 16px;position:relative;min-height:112px}
+.A .card .nm{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:1.2rem}.A .card .rl{font-size:.85rem;color:#7a6a58}
+.A .sign{margin-top:16px;border-top:1px dashed #b9a684;padding-top:4px;font-size:.75rem;color:#9a8a74}
+.A .stamp{position:absolute;right:12px;top:12px;width:62px;height:62px;border:3px solid #c0392b;border-radius:50%;color:#c0392b;display:flex;align-items:center;justify-content:center;font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:.9rem;transform:rotate(-12deg);opacity:.85}
+.A .stamp.ok{border-color:#2f6b3b;color:#2f6b3b}.A .stamp.wait{border-color:#b7791f;color:#b7791f}
+.A .card.f{background:#e8e2d6;filter:grayscale(1)}.A .card.f .nm{text-decoration:line-through}
+.A .card.f .oath{font-family:"Nanum Myeongjo",serif;font-size:.8rem;margin-top:6px}
+.A table{background:#fffaf0;border:1px solid #d8c9ad}.A th{background:#efe5d0;font-family:"Nanum Myeongjo",serif}.A td,.A th{border-bottom:1px solid #e3d6bd}
+.A .modal{background:#fffaf0;border:2px solid #2b2118;max-width:440px;width:100%;padding:26px;box-shadow:8px 8px 0 #2b2118}
+.A .modal .q{font-family:"Nanum Myeongjo",serif;font-size:1.55rem;font-weight:800;text-align:center;margin:14px 0}
+.A .yes{background:#c0392b;color:#fff}.A .no{background:#fff;border:1.5px solid #2b2118}
+
+/* ── B. 평화 게이지 ── */
+.B{background:linear-gradient(180deg,#eef6ff,#fdf2ff);color:#1f2a44}
+.B .top{padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
+.B .logo{font-family:"Jua",sans-serif;font-size:1.45rem;color:#5b5bd6}
+.B h1{font-family:"Jua",sans-serif;font-weight:400;font-size:2rem;margin:4px 0}
+.B .sub{color:#6b7795}
+.B .gauge{background:#fff;border-radius:22px;padding:16px 18px;box-shadow:0 6px 20px rgba(91,91,214,.12);margin:14px 0}
+.B .bar{height:18px;background:#e7e9f7;border-radius:999px;overflow:hidden;margin-top:8px}.B .bar i{display:block;height:100%;width:62%;background:linear-gradient(90deg,#7dd3fc,#a78bfa,#f9a8d4);border-radius:999px}
+.B .metric{background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 4px 14px rgba(31,42,68,.06)}.B .metric .k{font-size:.8rem;color:#6b7795}.B .metric .v{font-family:"Jua",sans-serif;font-size:1.6rem}
+.B .card{background:#fff;border-radius:22px;padding:16px;box-shadow:0 6px 18px rgba(31,42,68,.08);display:flex;gap:12px;align-items:center}
+.B .av{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex:none}
+.B .nm{font-family:"Jua",sans-serif;font-size:1.25rem}.B .rl{font-size:.82rem;color:#6b7795}
+.B .chip{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:700}
+.B .c-ok{background:#dcfce7;color:#166534}.B .c-wait{background:#fef9c3;color:#854d0e}.B .c-bad{background:#fee2e2;color:#991b1b}
+.B .card.f{filter:grayscale(1);opacity:.6}.B .card.f .nm{text-decoration:line-through}
+.B table{background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 14px rgba(31,42,68,.06)}.B th{background:#f3f2ff;color:#5b5bd6}.B td{border-top:1px solid #f0f0f7}
+.B .modal{background:#fff;border-radius:28px;max-width:420px;width:100%;padding:26px;text-align:center;box-shadow:0 20px 50px rgba(91,91,214,.25);position:relative;overflow:hidden}
+.B .crack{position:absolute;inset:0;pointer-events:none;opacity:.35}
+.B .q{font-family:"Jua",sans-serif;font-size:1.7rem;margin:10px 0}
+.B .yes{background:#fb7185;color:#fff;border-radius:16px}.B .no{background:#eef2ff;color:#4338ca;border-radius:16px}
+
+/* ── C. 미션 컨트롤 ── */
+.C{background:#0b1020;color:#d7def0;font-family:"Noto Sans KR",sans-serif}
+.C .top{padding:14px 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1d2742}
+.C .logo{font-family:"JetBrains Mono",monospace;font-weight:700;color:#5eead4;letter-spacing:.04em}
+.C h1{font-size:1.7rem;font-weight:900;margin:6px 0 2px;color:#fff}.C .sub{color:#7e8bb0}
+.C .metric{background:#111833;border:1px solid #1d2742;border-radius:12px;padding:12px}.C .metric .k{font-size:.75rem;color:#7e8bb0;letter-spacing:.06em}
+.C .metric .v{font-family:"JetBrains Mono",monospace;font-size:1.5rem;font-weight:700;color:#fff}.C .metric .v.alert{color:#fb7185}
+.C .card{background:#111833;border:1px solid #1d2742;border-radius:12px;padding:14px;border-left:4px solid #34d399}
+.C .card.w{border-left-color:#fbbf24}.C .card.b{border-left-color:#fb7185;box-shadow:0 0 0 1px rgba(251,113,133,.25),0 0 22px rgba(251,113,133,.15)}
+.C .card .nm{font-weight:700;color:#fff;font-size:1.1rem}.C .rl{font-size:.82rem;color:#7e8bb0}.C .st{font-family:"JetBrains Mono",monospace;font-size:.82rem;margin-top:6px}
+.C .card.f{filter:grayscale(1);opacity:.45}.C .card.f .nm{text-decoration:line-through}
+.C .heat td{padding:6px}.C .cell{height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",monospace;font-size:.78rem;font-weight:700}
+.C .h-ok{background:#064e3b;color:#6ee7b7}.C .h-w{background:#4a3a0a;color:#fcd34d}.C .h-b{background:#4c0519;color:#fda4af}.C .h-o{background:#1d2742;color:#7e8bb0}.C .h-f{background:#27272a;color:#71717a}
+.C th{color:#7e8bb0;font-size:.78rem;letter-spacing:.06em;font-weight:500}
+.C .modal{background:#111833;border:1px solid #fb7185;border-radius:16px;max-width:440px;width:100%;padding:24px;box-shadow:0 0 40px rgba(251,113,133,.25)}
+.C .tag{font-family:"JetBrains Mono",monospace;color:#fb7185;font-size:.8rem;letter-spacing:.1em}
+.C .q{font-size:1.5rem;font-weight:900;color:#fff;margin:10px 0}
+.C .yes{background:#fb7185;color:#0b1020;border-radius:10px}.C .no{background:#1d2742;color:#d7def0;border-radius:10px}
+</style></head><body>
+
+<div class="picker"><b>팀플 서약 · 디자인 시안</b>
+<button data-c="A" class="on">A. 서약서</button><button data-c="B">B. 평화 게이지</button><button data-c="C">C. 미션 컨트롤</button></div>
+
+<div class="note" id="note"></div>
+
+<div class="stage">
+<!-- ─────────── A ─────────── -->
+<section class="concept A on" data-c="A">
+  <div class="top"><span class="logo">팀플 서약 誓約</span><span style="font-size:.85rem">김민수 · 내 계정 · 로그아웃</span></div>
+  <div class="wrap">
+    <div class="sub">경영정보시스템 · 제 3조 · 초대 코드 DEMO01</div>
+    <h1>우리는 매주 작업물로 증명한다</h1>
+    <div class="clause">제1조 매주 일요일 21시까지 작업물을 올린다. 제2조 링크만 말고 무엇을 얼마나 했는지 적는다.</div>
+    <div class="metrics">
+      <div class="metric"><div class="k">현재 주차</div><div class="v">3 / 3주</div></div>
+      <div class="metric"><div class="k">이번 주 마감</div><div class="v">11/11</div></div>
+      <div class="metric"><div class="k">이번 주 제출</div><div class="v">2 / 4명</div></div>
+      <div class="metric"><div class="k">평화 상태</div><div class="v">위태로움</div></div>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="stamp ok">인정</div><div class="nm">김민수</div><div class="rl">총괄·보고서 · 팀장</div><div class="sign">서명 ✍ 김민수 · 2주차 70점</div></div>
+      <div class="card"><div class="stamp ok">인정</div><div class="nm">이서연</div><div class="rl">UX 분석</div><div class="sign">서명 ✍ 이서연 · 2주차 82점</div></div>
+      <div class="card"><div class="stamp wait">연장</div><div class="nm">최유진</div><div class="rl">발표자료</div><div class="sign">하루 연장 중 · 11/06 23:59까지</div></div>
+      <div class="card f"><div class="stamp">F</div><div class="nm">박지훈</div><div class="rl">사용자 설문</div><div class="oath">“F를 받겠습니다. 교수님께 따로 말씀드리는 것에 동의합니다.”</div></div>
+    </div>
+    <h3 style="font-family:'Nanum Myeongjo',serif;margin-top:22px">주차별 이행 기록</h3>
+    <div class="tw"><table><tr><th>서약자</th><th>1주차</th><th>2주차</th><th>3주차</th></tr>
+      <tr><td>김민수</td><td>인정 70</td><td>인정 70</td><td>진행 중</td></tr>
+      <tr><td>이서연</td><td>인정 74</td><td>인정 82</td><td>진행 중</td></tr>
+      <tr><td>최유진</td><td>인정 66</td><td>연장</td><td>진행 중</td></tr>
+      <tr style="opacity:.5;text-decoration:line-through"><td>박지훈</td><td>미제출</td><td>미제출</td><td>F 동의</td></tr></table></div>
+  </div>
+  <div class="modal-demo"><div class="modal">
+    <div class="sub">팝업 예시 · 2주차 미제출</div>
+    <div class="q">팀의 평화를<br>부수겠습니까?</div>
+    <div style="font-size:.88rem;color:#7a6a58;text-align:center">서약 제1조를 어겼습니다. 이번 주 목표: 응답 50부 수집·기초 통계</div>
+    <div class="btnrow"><span class="yes">예</span><span class="no">아니요 (하루 연장)</span></div>
+  </div></div>
+</section>
+
+<!-- ─────────── B ─────────── -->
+<section class="concept B" data-c="B">
+  <div class="top"><span class="logo">🕊️ 팀플 서약</span><span style="font-size:.85rem;color:#6b7795">김민수 · 내 계정 · 로그아웃</span></div>
+  <div class="wrap">
+    <div class="sub">경영정보시스템 · 3조</div>
+    <h1>이번 주 우리 팀 평화 지수 🕊️</h1>
+    <div class="gauge"><div style="display:flex;justify-content:space-between"><b>평화 지수 62%</b><span class="sub">4명 중 2명 제출 · 1명 연장 중</span></div><div class="bar"><i></i></div></div>
+    <div class="metrics">
+      <div class="metric"><div class="k">현재 주차</div><div class="v">3 / 3주</div></div>
+      <div class="metric"><div class="k">마감까지</div><div class="v">D-5</div></div>
+      <div class="metric"><div class="k">이번 주 제출</div><div class="v">2 / 4</div></div>
+      <div class="metric"><div class="k">AI 브리핑</div><div class="v">새 글 1</div></div>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="av" style="background:#e0e7ff">😎</div><div><div class="nm">김민수</div><div class="rl">총괄·보고서 · 팀장</div><span class="chip c-ok">✅ 70점</span></div></div>
+      <div class="card"><div class="av" style="background:#fce7f3">🎨</div><div><div class="nm">이서연</div><div class="rl">UX 분석</div><span class="chip c-ok">✅ 82점</span></div></div>
+      <div class="card"><div class="av" style="background:#fef3c7">⏰</div><div><div class="nm">최유진</div><div class="rl">발표자료</div><span class="chip c-wait">하루 연장 중</span></div></div>
+      <div class="card f"><div class="av" style="background:#e5e7eb">🫥</div><div><div class="nm">박지훈</div><div class="rl">사용자 설문</div><span class="chip c-bad">F 동의</span></div></div>
+    </div>
+    <h3 style="font-family:'Jua',sans-serif;font-weight:400;margin-top:22px;font-size:1.3rem">주차별 제출 현황</h3>
+    <div class="tw"><table><tr><th>팀원</th><th>1주차</th><th>2주차</th><th>3주차</th></tr>
+      <tr><td>김민수</td><td>✅</td><td>✅</td><td>⏳</td></tr><tr><td>이서연</td><td>✅</td><td>✅</td><td>⏳</td></tr>
+      <tr><td>최유진</td><td>✅</td><td>⏰</td><td>⏳</td></tr><tr style="opacity:.5"><td>박지훈</td><td>❌</td><td>❌</td><td>⚫</td></tr></table></div>
+  </div>
+  <div class="modal-demo"><div class="modal">
+    <svg class="crack" viewBox="0 0 400 300" preserveAspectRatio="none"><path d="M200 0 L185 70 L215 110 L170 170 L205 220 L190 300" stroke="#1f2a44" stroke-width="2" fill="none"/><path d="M215 110 L290 95 L340 140" stroke="#1f2a44" stroke-width="1.5" fill="none"/><path d="M170 170 L90 160 L40 200" stroke="#1f2a44" stroke-width="1.5" fill="none"/></svg>
+    <div style="font-size:2.4rem">🕊️💥</div>
+    <div class="q">팀플에 참여하지 않으시겠습니까?</div>
+    <div style="color:#6b7795;font-size:.9rem">박지훈 님, 2주차 작업물이 아직 없어요.<br>지금 30분이면 올릴 수 있어요!</div>
+    <div class="btnrow"><span class="yes">예…</span><span class="no">아니요! 하루만요</span></div>
+  </div></div>
+</section>
+
+<!-- ─────────── C ─────────── -->
+<section class="concept C" data-c="C">
+  <div class="top"><span class="logo">TEAMFAIR // 팀플 서약</span><span style="font-size:.82rem;color:#7e8bb0">김민수 · 내 계정 · 로그아웃</span></div>
+  <div class="wrap">
+    <div class="sub">경영정보시스템 · 3조 · WEEK 03 / 03</div>
+    <h1>팀 현황판</h1>
+    <div class="metrics">
+      <div class="metric"><div class="k">CURRENT WEEK</div><div class="v">03/03</div></div>
+      <div class="metric"><div class="k">DEADLINE</div><div class="v">D-5</div></div>
+      <div class="metric"><div class="k">SUBMITTED</div><div class="v">2/4</div></div>
+      <div class="metric"><div class="k">RISK</div><div class="v alert">1 MISSED</div></div>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="nm">김민수</div><div class="rl">총괄·보고서 · LEAD</div><div class="st" style="color:#6ee7b7">● ACCEPTED 70</div></div>
+      <div class="card"><div class="nm">이서연</div><div class="rl">UX 분석</div><div class="st" style="color:#6ee7b7">● ACCEPTED 82</div></div>
+      <div class="card w"><div class="nm">최유진</div><div class="rl">발표자료</div><div class="st" style="color:#fcd34d">● EXTENDED +24h</div></div>
+      <div class="card b f"><div class="nm">박지훈</div><div class="rl">사용자 설문</div><div class="st" style="color:#fda4af">● F AGREED</div></div>
+    </div>
+    <h3 style="margin-top:22px;color:#fff">주차별 히트맵</h3>
+    <div class="tw"><table class="heat"><tr><th>MEMBER</th><th>W1</th><th>W2</th><th>W3</th></tr>
+      <tr><td>김민수</td><td><div class="cell h-ok">70</div></td><td><div class="cell h-ok">70</div></td><td><div class="cell h-o">··</div></td></tr>
+      <tr><td>이서연</td><td><div class="cell h-ok">74</div></td><td><div class="cell h-ok">82</div></td><td><div class="cell h-o">··</div></td></tr>
+      <tr><td>최유진</td><td><div class="cell h-ok">66</div></td><td><div class="cell h-w">+24h</div></td><td><div class="cell h-o">··</div></td></tr>
+      <tr><td>박지훈</td><td><div class="cell h-b">MISS</div></td><td><div class="cell h-b">MISS</div></td><td><div class="cell h-f">F</div></td></tr></table></div>
+  </div>
+  <div class="modal-demo"><div class="modal">
+    <div class="tag">⚠ ALERT · WEEK 02 · NO SUBMISSION</div>
+    <div class="q">팀플에 참여하지 않으시겠습니까?</div>
+    <div style="color:#7e8bb0;font-size:.88rem">마감 11/04 23:59 경과 · 이번 주 목표: 응답 50부 수집·기초 통계</div>
+    <div class="btnrow"><span class="yes">예</span><span class="no">아니요 · +24h 연장</span></div>
+  </div></div>
+</section>
+</div>
+
+<script>
+const notes = {
+  A: ["A. 서약서 — '약속을 지키는 문서'", "크림색 종이, 명조 제목, 인주 도장으로 인정·연장·F를 표시합니다. 팀 규칙은 '제1조, 제2조' 조항처럼 보여 주고, 카드 아래에 서명줄이 있습니다.", "장점: 서비스 이름 '서약'과 F 동의 장면이 가장 잘 살아납니다. 발표 때 한눈에 기억에 남습니다. · 단점: 진지한 톤이라 귀여운 맛은 덜합니다."],
+  B: ["B. 평화 게이지 — '팀의 평화 지수'", "파스텔 배경, 둥근 카드, 팀원 이모지 아바타. 상단 게이지가 제출률을 '평화 지수'로 보여 주고, 팝업에는 금 간 유리 효과가 들어갑니다.", "장점: 대학생이 매주 열고 싶은 친근한 느낌, '팀플에 참여하지 않으시겠습니까?' 유머가 극대화됩니다. · 단점: 심사위원에게는 다소 가볍게 보일 수 있습니다."],
+  C: ["C. 미션 컨트롤 — '팀 현황판'", "다크 네이비 배경, 숫자는 모노 폰트, 주차별 제출을 색 히트맵으로 보여 줍니다. 미제출 팀원 카드는 빨간 빛으로 경고합니다.", "장점: 데이터·AI 서비스처럼 보여 기술 완성도 인상이 강합니다. · 단점: 서비스의 유머와 따뜻함은 약해집니다."]
+};
+function show(c){document.querySelectorAll('.concept').forEach(e=>e.classList.toggle('on',e.dataset.c===c));
+document.querySelectorAll('.picker button').forEach(b=>b.classList.toggle('on',b.dataset.c===c));
+const n=notes[c];document.getElementById('note').innerHTML=`<h2>${n[0]}</h2><p>${n[1]}</p><p>${n[2]}</p>`;}
+document.querySelectorAll('.picker button').forEach(b=>b.onclick=()=>show(b.dataset.c));show('A');
+</script>
+</body></html>

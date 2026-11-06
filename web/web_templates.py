@@ -219,7 +219,7 @@ TEAM = r"""{% extends "base.html" %}{% block title %}{{ team.course }} · {{ tea
   <h3 style="margin-top:0">⚠️ 이번 주 작업물이 없습니다</h3>
   <p><b>{{ me.name }}</b> 님, <b>{{ modal.week }}주차</b> 작업물을 마감({{ modal.deadline }})까지 올리지 않으셨습니다.</p>
   <p class="small">이번 주 목표: {{ modal.goal }}</p>
-  <div class="peace">팀의 평화를 부수겠습니까?</div>
+  <div class="peace">팀플에 참여하지 않으시겠습니까?</div>
   <div class="row"><a class="btn danger" href="{{ base }}?pd=confirm">예</a>
   {% if modal.ext_used %}<button class="btn gray" disabled>아니요 (연장 기회 소진)</button>
   {% else %}<form method="post" action="{{ base }}/peace/no" style="flex:1"><button class="btn gray" style="width:100%">아니요</button></form>{% endif %}</div>
