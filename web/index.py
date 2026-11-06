@@ -141,8 +141,8 @@ def login_response(req: Request, user: dict, url: str = "/", flash: str | None =
 def home(req: Request, tab: str = ""):
     user = current_user(req)
     if not user:
-        # 처음 들어온 방문자(이번 브라우저 세션에서 아직 시작화면을 지나지 않음)에게는 시작화면부터 보여 준다
-        if not tab and not req.cookies.get("intro") and not req.cookies.get("flash"):
+        # 로그인하지 않은 방문자가 첫 주소(/)로 들어오면 항상 시작화면부터 보여 준다 (로그아웃·오류 안내로 돌아온 경우는 제외)
+        if not tab and not req.cookies.get("flash"):
             return HTMLResponse(env.get_template("splash.html").render())
         return render(req, "auth.html", tab=tab if tab in ("login", "signup", "reset") else "login")
     return render(req, "home.html", my_teams=db.teams_for_email(user["email"]), today=date.today().isoformat(),
@@ -151,10 +151,8 @@ def home(req: Request, tab: str = ""):
 
 @app.get("/start")
 def start(req: Request):
-    """시작화면의 「아니요, 참여할게요」 → 로그인/회원가입/데모 화면으로. (브라우저를 닫을 때까지 시작화면 생략)"""
-    r = RedirectResponse("/?tab=login", status_code=303)
-    r.set_cookie("intro", "1", httponly=True, samesite="lax", secure=is_https(req), path="/")
-    return r
+    """시작화면의 「아니요, 참여할게요」 → 로그인/회원가입/데모 화면으로."""
+    return RedirectResponse("/?tab=login", status_code=303)
 
 
 @app.get("/intro", response_class=HTMLResponse)

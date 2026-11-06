@@ -14,7 +14,7 @@ ok = lambda r, *must: [(_ for _ in ()).throw(AssertionError((r.status_code, m, r
 
 r = c.get("/"); ok(r, "팀플에 참여하지", "아니요, 참여할게요", 'href="/start"'); assert "비밀번호 찾기" not in r.text
 r = c.get("/start"); ok(r, "로그인", "회원가입", "비밀번호 찾기", "데모 팀")
-ok(c.get("/"), "비밀번호 찾기")  # 한 번 지나면 같은 브라우저에선 바로 로그인 화면
+ok(c.get("/"), "아니요, 참여할게요")  # 로그인 전에는 첫 주소로 올 때마다 시작화면
 ok(c.get("/intro"), "아니요, 참여할게요")
 print("splash ok")
 assert c.get("/healthz").json()["storage"].startswith("SQLite")
