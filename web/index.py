@@ -409,7 +409,7 @@ def join(req: Request, code: str = ""):
     team = db.get_team(code or "")
     if not team:
         return go(req, "/", "해당 코드의 팀이 없습니다.", "error")
-    if team["code"] == db.DEMO_CODE:
+    if db.is_demo(team):
         return go(req, f"/t/{team['code']}")
     free = [m["name"] for m in db.list_members(team["id"]) if not m.get("email")]
     return render(req, "join.html", team=team, mine=db.member_by_email(team["id"], u["email"]), free=free)
@@ -435,7 +435,7 @@ def claim(req: Request, code: str, name: str = Form("")):
 def demo(req: Request):
     off = rule_llm()
     team = db.seed_demo(lambda **kw: ai.review_submission(off, **kw))
-    r = go(req, f"/t/{team['code']}", "데모 팀을 새로 만들었습니다. 박지훈으로 입장합니다.")
+    r = go(req, f"/t/{team['code']}", f"나만의 데모 팀(코드 {team['code']})을 만들었습니다. 박지훈으로 입장합니다. 다른 사람의 체험과 섞이지 않습니다.")
     set_cookie(r, req, "gme", urllib.parse.quote("박지훈"), 86400)
     return r
 
@@ -443,7 +443,7 @@ def demo(req: Request):
 @app.post("/t/{code}/as")
 def demo_as(req: Request, code: str, name: str = Form("")):
     team = db.get_team(code)
-    if not team or team["code"] != db.DEMO_CODE or not db.get_member(team["id"], name):
+    if not team or not db.is_demo(team) or not db.get_member(team["id"], name):
         return go(req, "/", "데모 팀에서만 팀원을 바꿔 볼 수 있습니다.", "error")
     r = go(req, f"/t/{team['code']}")
     set_cookie(r, req, "gme", urllib.parse.quote(name), 86400)
@@ -457,7 +457,7 @@ def team_access(req: Request, code: str):
     team = db.get_team(code or "")
     if not team:
         return None, None, go(req, "/", "해당 코드의 팀이 없습니다.", "error")
-    if team["code"] == db.DEMO_CODE:
+    if db.is_demo(team):
         name = urllib.parse.unquote(req.cookies.get("gme", ""))
         me = db.get_member(team["id"], name) if name else None
         if not me:
@@ -527,7 +527,7 @@ def team_page(req: Request, team: dict, me: dict, tab: str = "board", report: di
 
     return render(
         req, "team.html", team=team, me=me, members=members, base=base_url(team), tab=tab, tabs=TABS,
-        is_leader=me["name"] == team["leader"], is_demo=team["code"] == db.DEMO_CODE, modal=modal,
+        is_leader=me["name"] == team["leader"], is_demo=db.is_demo(team), modal=modal,
         cur_w=cur_w, deadline_str=f"{deadline:%m/%d}", dday=(f"D-{dleft.days}" if dleft.days >= 0 else f"D+{-dleft.days}"),
         done_cnt=done_cnt, now_str=f"{now:%m/%d}", now_full=f"{now:%Y-%m-%d %H:%M}",
         weeks=[{"n": w, "deadline": f"{db.week_deadline(team, w):%m/%d}"} for w in range(1, nweeks + 1)],
@@ -757,7 +757,7 @@ async def import_json(req: Request, code: str, file: UploadFile = File(...)):
     team, me, bad = team_access(req, code)
     if bad:
         return bad
-    if me["name"] != team["leader"] and team["code"] != db.DEMO_CODE:
+    if me["name"] != team["leader"] and not db.is_demo(team):
         return go(req, f"{base_url(team)}?tab=tools", "팀장만 가져올 수 있습니다.", "error")
     try:
         payload = (await file.read()).decode("utf-8")

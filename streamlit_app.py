@@ -616,7 +616,7 @@ def team_page(team: dict) -> None:
                     go(team["code"], me_sel)
                 except ValueError as e:
                     st.error(str(e))
-        elif team["code"] == db.DEMO_CODE or st.session_state.get("guest"):
+        elif db.is_demo(team) or st.session_state.get("guest"):
             me_sel = st.selectbox("내 이름을 선택하세요", [m["name"] for m in members])
             if st.button("입장"):
                 go(team["code"], me_sel)

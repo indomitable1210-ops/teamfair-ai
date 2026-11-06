@@ -8,7 +8,7 @@
 |---|---|
 | 🌐 배포 주소 | **https://teamfair-ai.vercel.app** |
 | 💻 GitHub | https://github.com/indomitable1210-ops/teamfair-ai |
-| 🧪 데모 | 첫 화면 → **「데모 팀 생성하고 입장」** 클릭 → `박지훈`으로 입장하면 팝업 시연 가능 (초대 코드 `DEMO01`) |
+| 🧪 데모 | 첫 화면 → **「데모 팀 생성하고 입장」** 클릭 → `박지훈`으로 입장하면 팝업 시연 가능 (누를 때마다 그 사람 전용 데모 팀이 새로 만들어져 여러 명이 동시에 체험해도 섞이지 않음, 하루 뒤 자동 정리) |
 | 🧠 AI | 역할 설계 AI → 검토 AI → 판정 AI(+재탕·복붙 감지) → 주간 브리핑 AI → 리포트 AI (5단 Multi-AI 파이프라인, OpenAI 호환 인터페이스) |
 | 🖥️ 교내 GPU | 틸론(Tilon x KTNF) GPU VM 에서 vLLM 로 EXAONE 서빙 → `Base URL` 만 바꿔 연결 ([docs/tilon_gpu.md](docs/tilon_gpu.md)) |
 | 🧾 프롬프트 기록 | [PROMPT_LOG.md](PROMPT_LOG.md) + 앱 내 「프롬프트 기록」 탭(실행마다 자동 저장·JSON 다운로드) |

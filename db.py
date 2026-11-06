@@ -145,7 +145,7 @@ _SCHEMA = [
     """CREATE TABLE IF NOT EXISTS teams(
         id {PK}, code TEXT UNIQUE, course TEXT, name TEXT, assignment TEXT,
         start_date TEXT, weeks INTEGER, leader TEXT, sim_offset_days INTEGER DEFAULT 0,
-        advice TEXT DEFAULT '', milestones_json TEXT DEFAULT '[]', created_at TEXT)""",
+        advice TEXT DEFAULT '', milestones_json TEXT DEFAULT '[]', created_at TEXT, is_demo INTEGER DEFAULT 0)""",
     """CREATE TABLE IF NOT EXISTS members(
         id {PK}, team_id INTEGER, name TEXT, role TEXT DEFAULT '', role_desc TEXT DEFAULT '',
         goals_json TEXT DEFAULT '[]', status TEXT DEFAULT 'active', f_agreed_at TEXT, email TEXT,
@@ -183,7 +183,7 @@ def init() -> None:
         for stmt in _SCHEMA:
             c.execute(stmt.replace("{PK}", pk).replace("{BLOB}", blob))
         # 구버전 DB 마이그레이션 (없는 컬럼만 추가)
-        for table, col, typ in (("members", "email", "TEXT"), ("members", "f_signature", "TEXT"), ("members", "f_signed_name", "TEXT"),
+        for table, col, typ in (("teams", "is_demo", "INTEGER DEFAULT 0"), ("members", "email", "TEXT"), ("members", "f_signature", "TEXT"), ("members", "f_signed_name", "TEXT"),
                                 ("members", "f_week", "INTEGER"), ("users", "recovery_hash", "TEXT"), ("users", "recovery_salt", "TEXT"),
                                 ("users", "failed_count", "INTEGER DEFAULT 0"), ("users", "locked_until", "TEXT")):
             if pg:
@@ -745,18 +745,35 @@ def import_team(payload: str) -> dict:
 
 # ───────────── 데모 팀 ─────────────
 
-DEMO_CODE = "DEMO01"
+DEMO_CODE = "DEMO01"  # 예전 공용 데모 팀 코드 (호환용)
+DEMO_TTL_HOURS = 24
+
+
+def is_demo(team: Optional[dict]) -> bool:
+    return bool(team) and (bool(team.get("is_demo")) or team.get("code") == DEMO_CODE)
+
+
+def cleanup_demos(hours: int = DEMO_TTL_HOURS) -> int:
+    """만든 지 오래된 데모 팀을 지운다. 반환: 지운 팀 수."""
+    cutoff = (datetime.now() - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with conn() as c:
+        ids = [r["id"] for r in c.execute("SELECT id FROM teams WHERE is_demo=1 AND created_at < ?", (cutoff,)).fetchall()]
+    for i in ids:
+        delete_team(i)
+    return len(ids)
 
 
 def seed_demo(review_fn) -> dict:
-    """심사용 데모 팀. 4명 · 3주 과제, 시작일은 15일 전 → 현재 3주차, 1·2주차 마감 경과.
-    박지훈은 한 번도 제출하지 않아 로그인 시 '팀플에 참여하지 않으시겠습니까?' 팝업이 뜬다."""
-    old = get_team(DEMO_CODE)
-    if old:
-        delete_team(old["id"])
+    """심사용 데모 팀. 누를 때마다 그 방문자 전용 팀을 새 코드로 만든다 (여러 명이 동시에 체험해도 서로 영향 없음).
+    4명 · 3주 과제, 시작일은 15일 전 → 현재 3주차, 1·2주차 마감 경과.
+    박지훈은 한 번도 제출하지 않아 입장 시 '팀플에 참여하지 않으시겠습니까?' 팝업이 뜬다."""
+    try:
+        cleanup_demos()
+    except Exception:
+        pass
     members = ["김민수", "이서연", "박지훈", "최유진"]
     team = create_team(
-        course="경영정보시스템", name="3조", leader="김민수", members=members, code=DEMO_CODE,
+        course="경영정보시스템", name="3조", leader="김민수", members=members,
         assignment="국내 편의점 3사의 모바일 앱 UX를 비교 분석하고, 개선안을 담은 보고서(10쪽)와 발표(10분)를 완성한다.",
         start_date=date.today() - timedelta(days=15), weeks=3)
     plan = {
@@ -769,6 +786,7 @@ def seed_demo(review_fn) -> dict:
         "milestones": ["분석 프레임 확정", "데이터 수집 완료", "최종본 제출·리허설"],
         "advice": "① 매주 일요일 21시까지 작업물 업로드 ② 링크만 말고 '무엇을 얼마나'를 3줄 이상 적기",
     }
+    update_team(team["id"], is_demo=1)
     save_plan(team["id"], plan)
     ms = {m["name"]: m for m in list_members(team["id"])}
     demo_subs = {
@@ -785,4 +803,4 @@ def seed_demo(review_fn) -> dict:
         res = review_fn(member=name, role=m["role"], goal=goal, week=week, text=text, link=link, filename="")
         add_submission(team["id"], m["id"], week, text=text, link=link, filename="",
                        score=int(res["verdict"].get("score", 0)), verdict=res["verdict"].get("verdict", "인정"), review=res)
-    return get_team(DEMO_CODE)
+    return get_team(team["code"])

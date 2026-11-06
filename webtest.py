@@ -20,42 +20,46 @@ print("splash ok")
 assert c.get("/healthz").json()["storage"].startswith("SQLite")
 
 # 데모: 로그인 없이 → 박지훈 팝업
-r = c.post("/demo"); assert r.status_code == 200, r.status_code; ok(r, "팀플에 참여하지 않으시겠습니까?", "박지훈")
-r = c.get("/t/DEMO01?pd=confirm"); ok(r, "혼자 F를 받는 것에 동의한다는 건가요?")
-r = c.post("/t/DEMO01/peace/no"); ok(r, "하루 연장")          # 1주차 연장 → 2주차 팝업
-ok(c.get("/t/DEMO01"), "2주차</b> 작업물")
+r = c.post("/demo"); D = str(r.url).split("/t/")[1].split("?")[0]; assert r.status_code == 200, r.status_code; ok(r, "팀플에 참여하지 않으시겠습니까?", "박지훈")
+r = c.get(f"/t/{D}?pd=confirm"); ok(r, "혼자 F를 받는 것에 동의한다는 건가요?")
+r = c.post(f"/t/{D}/peace/no"); ok(r, "하루 연장")          # 1주차 연장 → 2주차 팝업
+ok(c.get(f"/t/{D}"), "2주차</b> 작업물")
 for tab in ("board", "upload", "roles", "report", "logs", "tools"):
-    assert c.get(f"/t/DEMO01?tab={tab}&snooze=1").status_code == 200, tab
-r = c.post("/t/DEMO01/briefing", data={"week": "2"}); ok(r, "브리핑을 만들었습니다", "박지훈")
-r = c.post("/t/DEMO01/report"); ok(r, "보고서 .md 다운로드", "%")
+    assert c.get(f"/t/{D}?tab={tab}&snooze=1").status_code == 200, tab
+r = c.post(f"/t/{D}/briefing", data={"week": "2"}); ok(r, "브리핑을 만들었습니다", "박지훈")
+r = c.post(f"/t/{D}/report"); ok(r, "보고서 .md 다운로드", "%")
 # 복붙 제출 → 미인정 + 유사도
 copy = "GS25·CU·세븐일레븐 앱 평가 완료. 항목별 점수표와 스크린샷 18장, 주요 문제점 12건을 정리했습니다. 세븐일레븐 결제 단계가 가장 길었습니다(7단계)."
-r = c.post("/t/DEMO01/submit", data={"week": "2", "text": copy, "link": ""}); ok(r, "미인정", "복붙")
+r = c.post(f"/t/{D}/submit", data={"week": "2", "text": copy, "link": ""}); ok(r, "미인정", "복붙")
 # 성실 제출 + 파일 → 인정, 파일 다운로드
 good = "설문 문항 15개 초안 작성 완료. 인구통계 4문항, 이용행태 6문항, 만족도 5문항(5점 척도)으로 구성했고 구글폼으로 만들어 링크 첨부합니다. 파일럿 3명 응답 확인."
-r = c.post("/t/DEMO01/submit", data={"week": "1", "text": good, "link": "https://forms.gle/x"}, files={"file": ("설문 초안.txt", "문항 목록".encode())})
+r = c.post(f"/t/{D}/submit", data={"week": "1", "text": good, "link": "https://forms.gle/x"}, files={"file": ("설문 초안.txt", "문항 목록".encode())})
 assert re.search(r"판정: (인정|조건부 인정)", r.text), r.text[:500]
-fn = re.search(r'href="/file/([^"]+)"', c.get("/t/DEMO01?snooze=1").text).group(1)
+fn = re.search(r'href="/file/([^"]+)"', c.get(f"/t/{D}?snooze=1").text).group(1)
 assert c.get(f"/file/{fn}").content == "문항 목록".encode()
 # 시간 이동·내보내기·로그
-ok(c.post("/t/DEMO01/time", data={"delta": "7"}), "오프셋 7일")
-assert c.get("/t/DEMO01/export.json").json()["team"]["code"] == "DEMO01"
+ok(c.post(f"/t/{D}/time", data={"delta": "7"}), "오프셋 7일")
+assert c.get(f"/t/{D}/export.json").json()["team"]["code"] == D
 # 다른 팀원으로 전환 → F 동의 흐름
-c.post("/t/DEMO01/time", data={"delta": "0"})
-r = c.post("/t/DEMO01/as", data={"name": "박지훈"})
-ok(c.get("/t/DEMO01?pd=sign"), "학점 포기 동의 서약서", "F 학점을 받는 것에 동의", "sigpad")
+c.post(f"/t/{D}/time", data={"delta": "0"})
+r = c.post(f"/t/{D}/as", data={"name": "박지훈"})
+ok(c.get(f"/t/{D}?pd=sign"), "학점 포기 동의 서약서", "F 학점을 받는 것에 동의", "sigpad")
 import base64; sig = "data:image/png;base64," + base64.b64encode(b"PNGDATA" + b"0" * 400).decode()
-ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": "", "agree": "1", "week": "1"}), "자필 서명을 해 주세요")
-ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "김민수", "signature": sig, "agree": "1", "week": "1"}), "본인 이름(박지훈)")
-ok(c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": sig, "week": "1"}), "동의에 체크")
-r = c.post("/t/DEMO01/peace/agree", data={"signed_name": "박지훈", "signature": sig, "agree": "1", "week": "1"}); ok(r, "서약서에 서명이 완료되었습니다", "서명한 서약서 보기")
-pj = db.get_member(db.get_team("DEMO01")["id"], "박지훈")
-ok(c.get(f"/t/DEMO01/oath/{pj['id']}"), "학점 포기 동의 서약서", "1주차", "박지훈", sig[:60])
-ok(c.get("/t/DEMO01?snooze=1"), "학점 포기 서약서 보기")
-assert c.get(f"/t/DEMO01/oath/{db.get_member(pj['team_id'], '김민수')['id']}").status_code == 404
+ok(c.post(f"/t/{D}/peace/agree", data={"signed_name": "박지훈", "signature": "", "agree": "1", "week": "1"}), "자필 서명을 해 주세요")
+ok(c.post(f"/t/{D}/peace/agree", data={"signed_name": "김민수", "signature": sig, "agree": "1", "week": "1"}), "본인 이름(박지훈)")
+ok(c.post(f"/t/{D}/peace/agree", data={"signed_name": "박지훈", "signature": sig, "week": "1"}), "동의에 체크")
+r = c.post(f"/t/{D}/peace/agree", data={"signed_name": "박지훈", "signature": sig, "agree": "1", "week": "1"}); ok(r, "서약서에 서명이 완료되었습니다", "서명한 서약서 보기")
+pj = db.get_member(db.get_team(D)["id"], "박지훈")
+ok(c.get(f"/t/{D}/oath/{pj['id']}"), "학점 포기 동의 서약서", "1주차", "박지훈", sig[:60])
+ok(c.get(f"/t/{D}?snooze=1"), "학점 포기 서약서 보기")
+assert c.get(f"/t/{D}/oath/{db.get_member(pj['team_id'], '김민수')['id']}").status_code == 404
 print("oath sign flow ok")
-ok(c.get("/t/DEMO01?tab=upload"), "F 동의 상태에서는 제출할 수 없습니다")
-print("demo flow ok")
+ok(c.get(f"/t/{D}?tab=upload"), "F 동의 상태에서는 제출할 수 없습니다")
+c2 = TestClient(index.app); r2 = c2.post("/demo"); D2 = str(r2.url).split("/t/")[1].split("?")[0]
+assert D2 != D and "나만의 데모 팀" in r2.text and db.get_team(D) and db.get_member(db.get_team(D)["id"], "박지훈")["status"] == "F"
+assert db.get_member(db.get_team(D2)["id"], "박지훈")["status"] == "active"  # 다른 방문자 데모에는 영향 없음
+db.update_team(db.get_team(D2)["id"], created_at="2000-01-01T00:00:00"); assert db.cleanup_demos() >= 1 and db.get_team(D2) is None
+print("demo flow ok (per-visitor demo teams isolated, old demos cleaned)")
 
 # 회원가입 → 복구 코드 → 팀 만들기
 k = TestClient(index.app)
