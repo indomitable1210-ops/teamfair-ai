@@ -76,9 +76,9 @@ pre.code{background:#f3f4f6;border-radius:8px;padding:10px;white-space:pre-wrap;
 
 AUTH = r"""{% extends "base.html" %}{% block body %}
 <h1>🤝 팀플 서약</h1>
-<p><b>팀플 시작 전에 팀을 등록하고, 매주 작업물로 기여를 증명하세요.</b> 올리지 않으면… 팝업이 묻습니다.</p>
-<p class="small">AI가 역할을 설계하고, 제출물이 '진짜 작업물'인지 검토·판정하며, 학기 말 기여도 리포트를 만들어 줍니다.
-이메일 계정으로 로그인하면 <b>내가 어느 팀의 누구인지</b>가 고정되어 다른 사람 이름으로 제출할 수 없습니다.</p>
+<p style="font-size:1.25rem;margin:.2em 0 .1em"><b>기여는 기록으로, 평가는 공정하게.</b></p>
+<p style="margin:0 0 .4em">역할 배분부터 기여도 리포트까지 AI가 함께합니다.</p>
+<p class="small">이메일 계정으로 로그인하면 <b>내가 어느 팀의 누구인지</b>가 고정되어 다른 사람 이름으로 제출할 수 없습니다.</p>
 <div class="cols">
 <div class="card">
   <div class="tabs">
