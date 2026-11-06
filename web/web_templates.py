@@ -6,7 +6,7 @@ BASE = r"""<!doctype html>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}팀플 서약{% endblock %}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>">
+<link rel="icon" type="image/png" href="/icon-32.png"><link rel="apple-touch-icon" href="/icon-180.png">
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#111827;--sub:#6b7280;--line:#e5e7eb;--brand:#4f46e5;--brand-ink:#fff;
 --ok:#065f46;--ok-bg:#ecfdf5;--warn:#92400e;--warn-bg:#fffbeb;--bad:#991b1b;--bad-bg:#fef2f2;--info:#1e40af;--info-bg:#eff6ff}
@@ -62,7 +62,7 @@ pre.code{background:#f3f4f6;border-radius:8px;padding:10px;white-space:pre-wrap;
 @media print{.top,footer,.noprint{display:none!important}main{padding:0}.oathdoc{border:0}}
 @media (max-width:600px){h1{font-size:1.35rem}.top{padding:10px 16px}}
 </style></head><body>
-<header class="top"><a class="brand" href="/">🤝 팀플 서약</a><nav>
+<header class="top"><a class="brand" href="/"><img src="/icon-180.png" alt="" width="30" height="30" style="border-radius:50%;vertical-align:-8px;margin-right:6px">팀플 서약</a><nav>
 {% if user %}<span class="who">👤 {{ user.name }}</span><a href="/account">내 계정</a><a href="/settings">AI 설정</a>
 <form method="post" action="/logout" class="inline"><button class="link">로그아웃</button></form>
 {% else %}<a href="/settings">AI 설정</a><a href="/">로그인 / 회원가입</a>{% endif %}
@@ -75,7 +75,7 @@ pre.code{background:#f3f4f6;border-radius:8px;padding:10px;white-space:pre-wrap;
 </body></html>"""
 
 AUTH = r"""{% extends "base.html" %}{% block body %}
-<h1>🤝 팀플 서약</h1>
+<h1 style="display:flex;align-items:center;gap:12px"><img src="/icon-180.png" alt="" width="54" height="54" style="border-radius:50%">팀플 서약</h1>
 <p style="font-size:1.25rem;margin:.2em 0 .1em"><b>기여는 기록으로, 평가는 공정하게.</b></p>
 <p style="margin:0 0 .4em">역할 배분부터 기여도 리포트까지 AI가 함께합니다.</p>
 <p class="small">이메일 계정으로 로그인하면 <b>내가 어느 팀의 누구인지</b>가 고정되어 다른 사람 이름으로 제출할 수 없습니다.</p>
@@ -139,7 +139,7 @@ RECOVERY = r"""{% if recovery_code %}
 
 HOME = r"""{% extends "base.html" %}{% block body %}
 {% include "recovery.html" %}
-<h1>🤝 팀플 서약</h1>
+<h1 style="display:flex;align-items:center;gap:12px"><img src="/icon-180.png" alt="" width="54" height="54" style="border-radius:50%">팀플 서약</h1>
 <p>안녕하세요, <b>{{ user.name }}</b> 님. 팀을 만들거나 초대 코드로 참여하세요.</p>
 {% if my_teams %}<h2>📌 내 팀</h2><div class="cols3">
 {% for t in my_teams %}<div class="card"><b>{{ t.course }} · {{ t.name }}</b><div class="small">나: {{ t.my_name }}{% if t.leader == t.my_name %} · 팀장{% endif %} · {{ t.weeks }}주 · 코드 {{ t.code }}</div>
@@ -421,7 +421,7 @@ SPLASH = r'''<!doctype html>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>팀플 서약</title>
 <meta name="description" content="매주 작업물로 기여를 증명하는 무임승차 방지 팀플 플랫폼">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>">
+<link rel="icon" type="image/png" href="/icon-32.png"><link rel="apple-touch-icon" href="/icon-180.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%}
@@ -443,8 +443,9 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;min
 .hint b{color:#374151}
 @media (max-width:480px){.q{font-size:1.5rem}.brand{left:16px}}
 </style></head><body>
-<div class="brand">🤝 팀플 서약</div>
+<div class="brand"><img src="/icon-180.png" alt="" width="30" height="30" style="border-radius:50%;vertical-align:-9px;margin-right:6px">팀플 서약</div>
 <div class="win" role="dialog" aria-labelledby="q">
+  <img src="/icon-180.png" alt="" width="66" height="66" style="border-radius:50%;display:block;margin-bottom:12px">
   <div class="warn">⚠️ 이번 주 작업물이 없습니다</div>
   <div class="q" id="q">팀플에 참여하지<br>않으시겠습니까?</div>
   <div class="sub">당신의 팀원 3명이 기다리고 있습니다.</div>
