@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>팀플 서약 시작화면 시안</title>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700;900&family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans KR",sans-serif;background:#d9dbe1}
+.picker{position:sticky;top:0;z-index:50;background:#111827;color:#fff;padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.picker b{margin-right:8px}.picker button{border:1px solid #374151;background:#1f2937;color:#e5e7eb;border-radius:999px;padding:7px 14px;font:inherit;cursor:pointer}
+.picker button.on{background:#fff;color:#111;font-weight:700}
+.note{max-width:1000px;margin:14px auto 0;padding:0 16px;color:#1f2937}.note h2{margin:.2em 0;font-size:1.1rem}.note p{margin:.25em 0;font-size:.92rem}
+.stage{max-width:1000px;margin:12px auto 40px;padding:0 16px}
+.screen{display:none;position:relative;height:620px;border-radius:18px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.18)}.screen.on{display:block}
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+.cta{margin-top:30px;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:1.05rem;padding:15px 34px;border-radius:999px;transition:transform .15s}
+.cta:hover{transform:translateY(-2px)}
+.after{position:absolute;inset:0;background:#f6f7f9;display:none;align-items:center;justify-content:center;flex-direction:column;color:#111}
+.after.show{display:flex;animation:fade .4s ease}.after .box{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:22px 26px;width:min(360px,90%)}
+.after .box div{height:38px;border:1px solid #d1d5db;border-radius:9px;margin:8px 0}.after .box .b{background:#4f46e5;border:0}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+/* 1. 도장 */
+.s1{background:#f4ecdc;color:#2b2118}
+.s1 .paper{position:absolute;inset:40px;border:1px solid #d5c6a8;background:repeating-linear-gradient(#f9f3e6 0 31px,#eadfca 32px)}
+.s1 .kicker{font-family:"Nanum Myeongjo",serif;letter-spacing:.5em;color:#8a7558;font-size:.9rem}
+.s1 h1{font-family:"Nanum Myeongjo",serif;font-size:4.4rem;margin:.15em 0;letter-spacing:.12em}
+.s1 .tag{font-family:"Nanum Myeongjo",serif;font-size:1.15rem;color:#5b4a37}
+.s1 .seal{position:absolute;right:16%;top:22%;width:130px;height:130px;border:6px solid #c0392b;border-radius:50%;color:#c0392b;display:flex;align-items:center;justify-content:center;
+font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:2.4rem;transform:rotate(-14deg) scale(2.2);opacity:0;animation:stamp .5s .6s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes stamp{to{opacity:.88;transform:rotate(-14deg) scale(1)}}
+.s1 .cta{background:#2b2118;color:#f4ecdc;border-radius:4px;font-family:"Nanum Myeongjo",serif;letter-spacing:.1em}
+
+/* 2. 팝업 패러디 */
+.s2{background:radial-gradient(circle at 50% 35%,#1e293b,#020617);color:#fff}
+.s2 .win{background:#fff;color:#111;border-radius:16px;width:min(440px,92%);padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:pop .5s .2s both cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.s2 .warn{font-size:.85rem;color:#b91c1c;font-weight:700}.s2 .q{font-size:1.7rem;font-weight:900;margin:12px 0 6px}
+.s2 .row{display:flex;gap:10px;margin-top:18px}.s2 .row button{flex:1;border:0;border-radius:10px;padding:13px;font:inherit;font-weight:800;cursor:pointer}
+.s2 .yes{background:#e5e7eb;color:#9ca3af}.s2 .no{background:#4f46e5;color:#fff}
+.s2 .brand{position:absolute;top:26px;left:30px;font-weight:900;letter-spacing:.05em;opacity:.85}
+.s2 .hint{margin-top:18px;color:#94a3b8;font-size:.85rem}
+
+/* 3. 흑백 팀원 */
+.s3{background:#0f0f10;color:#f5f5f5}
+.s3 .cards{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.s3 .c{width:130px;height:170px;border-radius:16px;background:linear-gradient(160deg,#fde68a,#fb7185);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:14px;font-weight:700;color:#111}
+.s3 .c:nth-child(2){background:linear-gradient(160deg,#a7f3d0,#60a5fa)}.s3 .c:nth-child(3){background:linear-gradient(160deg,#c4b5fd,#f472b6)}
+.s3 .c .face{font-size:3rem;margin-bottom:auto;margin-top:26px}
+.s3 .c.gone{animation:gray 2.4s .6s forwards}
+@keyframes gray{to{filter:grayscale(1);opacity:.25;transform:translateY(10px)}}
+.s3 h1{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:3.2rem;margin:34px 0 4px}
+.s3 p{color:#a1a1aa;margin:0}.s3 .cta{background:#fff;color:#111}
+
+/* 4. 무임승차 금지 */
+.s4{background:#facc15;color:#111}
+.s4 .sign{width:190px;height:190px;border-radius:50%;border:16px solid #dc2626;background:#fff;position:relative;display:flex;align-items:center;justify-content:center;font-size:5.2rem}
+.s4 .sign:after{content:"";position:absolute;width:16px;height:200px;background:#dc2626;transform:rotate(45deg);border-radius:8px}
+.s4 h1{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:4.2rem;margin:22px 0 0;letter-spacing:.02em}
+.s4 p{font-weight:700;font-size:1.1rem;margin:4px 0 0}.s4 .cta{background:#111;color:#facc15}
+.s4 .stripe{position:absolute;left:0;right:0;height:26px;background:repeating-linear-gradient(45deg,#111 0 22px,#facc15 22px 44px)}
+
+/* 5. 귀여운 비둘기 */
+.s5{background:linear-gradient(180deg,#e0f2fe,#fce7f3);color:#1e1b4b}
+.s5 .bird{font-size:5.5rem;animation:float 3s ease-in-out infinite}@keyframes float{50%{transform:translateY(-12px)}}
+.s5 h1{font-family:"Jua",sans-serif;font-weight:400;font-size:3.6rem;margin:.1em 0}
+.s5 p{color:#4c4f7a;font-size:1.05rem;margin:0}.s5 .cta{background:#6366f1;color:#fff;box-shadow:0 10px 24px rgba(99,102,241,.35)}
+.s5 .dots{display:flex;gap:8px;margin-top:18px}.s5 .dots i{width:46px;height:46px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:1.4rem;box-shadow:0 4px 12px rgba(30,27,75,.1)}
+</style></head><body>
+<div class="picker"><b>시작화면 시안</b>
+<button data-s="1" class="on">1. 서약 도장</button><button data-s="2">2. 팝업 패러디</button><button data-s="3">3. 사라지는 팀원</button><button data-s="4">4. 무임승차 금지</button><button data-s="5">5. 평화의 비둘기</button>
+<span style="opacity:.6;font-size:.85rem;margin-left:8px">각 화면의 버튼을 누르면 로그인 화면으로 넘어가는 흐름을 볼 수 있습니다</span></div>
+<div class="note" id="note"></div>
+<div class="stage">
+
+<section class="screen s1 on" data-s="1"><div class="paper"></div>
+  <div class="center"><div class="kicker">誓 約 書</div><h1>팀플 서약</h1><div class="tag">이번 학기, 우리 팀은 아무도 버스에 태우지 않습니다.</div>
+  <button class="cta go">서약하러 가기</button></div><div class="seal">誓約</div><div class="after"></div></section>
+
+<section class="screen s2" data-s="2"><div class="brand">🤝 팀플 서약</div>
+  <div class="center"><div class="win"><div class="warn">⚠️ 이번 주 작업물이 없습니다</div>
+  <div class="q">팀플에 참여하지<br>않으시겠습니까?</div><div style="color:#6b7280;font-size:.92rem">당신의 팀원 3명이 기다리고 있습니다.</div>
+  <div class="row"><button class="yes" disabled>예</button><button class="no go">아니요, 참여할게요</button></div></div>
+  <div class="hint">매주 작업물로 기여를 증명하는 팀플 플랫폼</div></div><div class="after"></div></section>
+
+<section class="screen s3" data-s="3">
+  <div class="center"><div class="cards"><div class="c"><span class="face">😎</span>김민수</div><div class="c"><span class="face">🎨</span>이서연</div><div class="c gone"><span class="face">🫥</span>박지훈</div><div class="c"><span class="face">🎤</span>최유진</div></div>
+  <h1>한 명이 사라지기 전에.</h1><p>매주 작업물로 증명하는 팀플 서약</p><button class="cta go">우리 팀 지키러 가기</button></div><div class="after"></div></section>
+
+<section class="screen s4" data-s="4"><div class="stripe" style="top:0"></div><div class="stripe" style="bottom:0"></div>
+  <div class="center"><div class="sign">🚌</div><h1>무임승차 금지</h1><p>팀플 서약 · 매주 작업물로 증명하세요</p><button class="cta go">탑승 거부하러 가기</button></div><div class="after"></div></section>
+
+<section class="screen s5" data-s="5">
+  <div class="center"><div class="bird">🕊️</div><h1>팀플 서약</h1><p>우리 팀의 평화, 매주 작업물 하나로 지켜요</p>
+  <div class="dots"><i>😎</i><i>🎨</i><i>📊</i><i>🎤</i></div><button class="cta go">평화 지키러 가기</button></div><div class="after"></div></section>
+</div>
+<script>
+const notes={
+ "1":["1. 서약 도장 — 계약서에 도장이 '쾅'","크림색 줄 종이 위에 명조체 제목이 뜨고, 잠시 뒤 빨간 '誓約' 도장이 찍히는 애니메이션. 버튼: 「서약하러 가기」","서비스 이름과 학점 포기 서약서 기능이 자연스럽게 이어집니다. 사이트 디자인 시안 A(서약서)와 짝이 맞습니다."],
+ "2":["2. 팝업 패러디 — 첫 화면부터 그 질문","들어오자마자 핵심 장면인 '팀플에 참여하지 않으시겠습니까?' 팝업이 뜹니다. '예'는 비활성, 「아니요, 참여할게요」를 눌러야 입장.","심사위원이 서비스의 핵심을 3초 만에 이해합니다. 발표 시연 첫 장면으로 가장 강력합니다."],
+ "3":["3. 사라지는 팀원 — 한 명이 흑백으로","팀원 카드 4장 중 한 장이 천천히 흑백으로 바래며 사라집니다. 문구: '한 명이 사라지기 전에.'","F 동의 시 이름이 흑백 처리되는 기능을 미리 보여 줍니다. 분위기는 가장 감성적입니다."],
+ "4":["4. 무임승차 금지 — 경고 표지판","노랑·검정 경고 줄무늬와 버스 금지 표지판, 굵은 '무임승차 금지' 타이포. 버튼: 「탑승 거부하러 가기」","메시지가 가장 직관적이고 유머러스합니다. 다만 사이트 본문 디자인과 톤을 맞추려면 색을 따로 정해야 합니다."],
+ "5":["5. 평화의 비둘기 — 귀엽고 밝게","파스텔 그라데이션 위에 둥실 떠 있는 비둘기, 팀원 이모지 동그라미. 버튼: 「평화 지키러 가기」","가장 친근하고 대학생이 매주 열기 부담 없는 톤입니다. 사이트 디자인 시안 B(평화 게이지)와 짝이 맞습니다."]};
+function show(n){document.querySelectorAll('.screen').forEach(e=>{e.classList.toggle('on',e.dataset.s===n);const a=e.querySelector('.after');a.classList.remove('show');a.innerHTML='';
+  if(e.dataset.s===n){e.querySelectorAll('.seal,.gone').forEach(x=>{x.style.animation='none';x.offsetHeight;x.style.animation='';});}});
+ document.querySelectorAll('.picker button').forEach(b=>b.classList.toggle('on',b.dataset.s===n));
+ const t=notes[n];document.getElementById('note').innerHTML=`<h2>${t[0]}</h2><p>${t[1]}</p><p>${t[2]}</p>`;}
+document.querySelectorAll('.picker button').forEach(b=>b.onclick=()=>show(b.dataset.s));
+document.querySelectorAll('.go').forEach(b=>b.onclick=e=>{const a=e.target.closest('.screen').querySelector('.after');
+ a.innerHTML='<div class="box"><b>🔑 로그인</b><div></div><div></div><div class="b"></div><p style="font-size:.8rem;color:#6b7280;margin:6px 0 0">← 여기서 지금의 로그인 / 회원가입 / 데모 화면으로 이어집니다</p></div>';a.classList.add('show');});
+show("1");
+</script></body></html>

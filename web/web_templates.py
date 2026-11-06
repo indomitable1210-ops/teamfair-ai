@@ -416,10 +416,49 @@ OATH_PAGE = r'''{% extends "base.html" %}{% from "oathdoc.html" import oath_doc 
 {{ oath_doc(team, m, m.f_week, True, m.f_signature, m.f_signed_name or m.name, (m.f_agreed_at or '')[:16]|replace('T', ' ')) }}
 {% endblock %}'''
 
+SPLASH = r'''<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>팀플 서약</title>
+<meta name="description" content="매주 작업물로 기여를 증명하는 무임승차 방지 팀플 플랫폼">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:"Noto Sans KR",-apple-system,"Malgun Gothic",sans-serif;background:radial-gradient(circle at 50% 35%,#1e293b,#020617);color:#fff;
+display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px;text-align:center;overflow:hidden}
+.brand{position:fixed;top:22px;left:26px;font-weight:900;letter-spacing:.05em;opacity:.85}
+.win{background:#fff;color:#111;border-radius:18px;width:min(460px,100%);padding:28px 26px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:pop .55s .15s both cubic-bezier(.2,1.4,.4,1);text-align:left}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.warn{font-size:.88rem;color:#b91c1c;font-weight:700}
+.q{font-size:1.85rem;line-height:1.3;font-weight:900;margin:12px 0 8px}
+.sub{color:#6b7280;font-size:.95rem}
+.row{display:flex;gap:10px;margin-top:20px}
+.row>*{flex:1;border:0;border-radius:11px;padding:14px;font:inherit;font-weight:800;text-align:center;text-decoration:none}
+.yes{background:#e5e7eb;color:#9ca3af;cursor:not-allowed}
+.no{background:#4f46e5;color:#fff;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.no:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(79,70,229,.45)}
+.yes-tip{display:none;margin-top:12px;font-size:.85rem;color:#b91c1c}
+.hint{margin-top:22px;color:#94a3b8;font-size:.9rem;line-height:1.7}
+.hint b{color:#e2e8f0}
+@media (max-width:480px){.q{font-size:1.5rem}.brand{left:16px}}
+</style></head><body>
+<div class="brand">🤝 팀플 서약</div>
+<div class="win" role="dialog" aria-labelledby="q">
+  <div class="warn">⚠️ 이번 주 작업물이 없습니다</div>
+  <div class="q" id="q">팀플에 참여하지<br>않으시겠습니까?</div>
+  <div class="sub">당신의 팀원 3명이 기다리고 있습니다.</div>
+  <div class="row"><button class="yes" type="button" id="yes" aria-disabled="true">예</button><a class="no" href="/start">아니요, 참여할게요</a></div>
+  <div class="yes-tip" id="tip">팀플 서약에서는 '예'를 고를 수 없어요. 함께해요 🙂</div>
+</div>
+<div class="hint">매주 작업물로 기여를 증명하는 팀플 플랫폼<br><b>AI가 역할을 나누고, 제출물을 검토하고, 기여도를 기록합니다.</b></div>
+<script>document.getElementById('yes').onclick=function(){document.getElementById('tip').style.display='block';};</script>
+</body></html>'''
+
 ERROR = r"""{% extends "base.html" %}{% block body %}<h1>{{ title }}</h1><div class="alert error">{{ message }}</div><a href="/">← 처음으로</a>{% endblock %}"""
 
 env = Environment(
     loader=DictLoader({"base.html": BASE, "auth.html": AUTH, "recovery.html": RECOVERY, "home.html": HOME, "join.html": JOIN,
-                       "pick.html": PICK, "oathdoc.html": OATH_DOC, "oath.html": OATH_PAGE, "account.html": ACCOUNT, "settings.html": SETTINGS, "team.html": TEAM, "error.html": ERROR}),
+                       "pick.html": PICK, "splash.html": SPLASH, "oathdoc.html": OATH_DOC, "oath.html": OATH_PAGE, "account.html": ACCOUNT, "settings.html": SETTINGS, "team.html": TEAM, "error.html": ERROR}),
     autoescape=select_autoescape(default=True),
 )

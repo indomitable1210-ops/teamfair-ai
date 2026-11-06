@@ -12,7 +12,11 @@ import index, db
 c = TestClient(index.app)
 ok = lambda r, *must: [(_ for _ in ()).throw(AssertionError((r.status_code, m, r.text[:600]))) for m in must if m not in r.text] or r
 
-r = c.get("/"); assert r.status_code == 200; ok(r, "로그인", "회원가입", "비밀번호 찾기", "데모 팀")
+r = c.get("/"); ok(r, "팀플에 참여하지", "아니요, 참여할게요", 'href="/start"'); assert "비밀번호 찾기" not in r.text
+r = c.get("/start"); ok(r, "로그인", "회원가입", "비밀번호 찾기", "데모 팀")
+ok(c.get("/"), "비밀번호 찾기")  # 한 번 지나면 같은 브라우저에선 바로 로그인 화면
+ok(c.get("/intro"), "아니요, 참여할게요")
+print("splash ok")
 assert c.get("/healthz").json()["storage"].startswith("SQLite")
 
 # 데모: 로그인 없이 → 박지훈 팝업
@@ -88,7 +92,7 @@ ok(r, "잠겼습니다")
 ok(x.post("/login", data={"email": "kim@univ.ac.kr", "pw": "secret1"}), "잠겨 있습니다")
 r = x.post("/reset", data={"email": "kim@univ.ac.kr", "code": "AAAA-BBBB", "pw1": "newpass1", "pw2": "newpass1"}); ok(r, "복구 코드가 올바르지")
 r = x.post("/reset", data={"email": "kim@univ.ac.kr", "code": code, "pw1": "newpass1", "pw2": "newpass1"}); ok(r, "재설정하고 로그인", "복구 코드를 지금")
-ok(k.get("/"), "회원가입")  # 기존 기기 세션은 재설정으로 종료
+ok(k.get("/?tab=login"), "회원가입")  # 기존 기기 세션은 재설정으로 종료
 ok(x.post("/account/password", data={"cur": "nope", "n1": "final123", "n2": "final123"}), "현재 비밀번호가 올바르지")
 ok(x.post("/account/password", data={"cur": "newpass1", "n1": "final123", "n2": "final123"}), "비밀번호를 변경했습니다")
 ok(x.post("/account/recovery", data={"pw": "final123"}), "새 복구 코드를 발급", "code-big")
