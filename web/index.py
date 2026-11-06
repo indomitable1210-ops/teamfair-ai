@@ -800,7 +800,7 @@ _ICONS = {"/icon-32.png": ("ICON_32", "image/png"), "/icon-180.png": ("ICON_180"
 def _icon_route(path: str):
     attr, mime = _ICONS[path]
     data = base64.b64decode(getattr(icon_data, attr))
-    return lambda: Response(data, media_type=mime, headers={"Cache-Control": "public, max-age=3600"})
+    return lambda: Response(data, media_type=mime, headers={"Cache-Control": "no-cache"})
 
 
 for _p in _ICONS:
